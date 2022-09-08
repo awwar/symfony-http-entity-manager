@@ -58,7 +58,7 @@ class Contact
         $this->email = $newEmail;
     }
 
-    public function addDeal(SalesapDealEntity $deal): void
+    public function addDeal(Deal $deal): void
     {
         if (in_array($deal, (array) $this->deals)) {
             return;
@@ -128,7 +128,7 @@ class Contact
         $this->email = $newEmail;
     }
 
-    public function addDeal(SalesapDealEntity $deal): void
+    public function addDeal(Deal $deal): void
     {
         if (in_array($deal, (array) $this->deals)) {
             return;
