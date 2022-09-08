@@ -1,0 +1,11 @@
+parameters:
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    level: 8
+    paths:
+        - src
+    featureToggles:
+        disableCheckMissingIterableValueType: false
+    ignoreErrors:
+        - message: '#^Service "[^"]+" is private.$#'
+          path: %rootDir%/../../../tests/

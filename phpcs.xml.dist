@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<ruleset name="RealWorld" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/squizlabs/php_codesniffer/phpcs.xsd">
+    <config name="ignore_warnings_on_exit" value="1"/>
+    <arg name="basepath" value="."/>
+    <arg name="cache" value="var/.cache-phpcs"/>
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+    <file>src/</file>
+    <rule ref="PSR1"/>
+    <rule ref="PSR12"/>
+    <!-- additional rules -->
+    <rule ref="Generic.PHP.ForbiddenFunctions">
+        <properties>
+            <property name="forbiddenFunctions" type="array" value="dd=>null,var_dump=>null,dump=>null,exit=>null,die=>null,eval=>null,sizeof=>count,delete=>unset,print=>echo,is_null=>null,create_function=>null"/>
+        </properties>
+    </rule>
+    <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
+    <rule ref="Generic.Formatting.SpaceAfterCast"/>
+</ruleset>
