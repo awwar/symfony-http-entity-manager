@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 * Bug with deletion
-* Bug when HttpEntityManager delete entity on remove
+* Bug when Http EntityManager deletes entity on deletion
 
 ### Added
 
