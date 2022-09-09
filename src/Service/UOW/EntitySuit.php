@@ -51,7 +51,10 @@ class EntitySuit
 
     public function startWatch(): void
     {
-        $changes = ['properties' => [], 'relations' => []];
+        $changes = [
+            'properties' => [],
+            'relations' => []
+        ];
 
         $properties = $this->getMetadata()->getProperties();
         $relations = $this->entityMetadata->getRelationsMap();
@@ -75,7 +78,13 @@ class EntitySuit
                     }
                 }
             } else {
-                $changes['properties'][$property] = $this->getValue($this->original, $property);
+                if ($property === $this->getMetadata()->getIdProperty()) {
+                    $value = $this->getEntityId($this->original);
+                } else {
+                    $value = $this->getValue($this->original, $property);
+                }
+
+                $changes['properties'][$property] = $value;
             }
         }
 
