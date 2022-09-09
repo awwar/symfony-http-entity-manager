@@ -20,7 +20,7 @@ class SymfonyHttpEntityManagerBundle extends Bundle
         parent::boot();
 
         $generator = new Generator(
-            $this->container->getParameter('http_entity.proxy_dir')
+            (string) $this->container->getParameter('http_entity.proxy_dir')
         );
 
         $autoloader = static function ($className) use ($generator) {

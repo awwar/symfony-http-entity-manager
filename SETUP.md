@@ -72,13 +72,14 @@ class Contact
 Достаточно простая сущность, однако имеет в себе массив `deals`  и может хранить в себе `admin`
 
 Чтобы уже начать работать мы можем добавить 4 основные аннотации:
+
 - [HttpEntity](ANNOTATIONS.md#httpentity)
 - [FieldMap](ANNOTATIONS.md#fieldmap)
 - [RelationMap](ANNOTATIONS.md#relationmap)
 - [EntityId](ANNOTATIONS.md#entityid)
 
-По итогу мы уже можем получить сущность и все поля кроме ralations правильно размапятся. 
-Однако для полноценной работы нужны другие [аннотации](ANNOTATIONS.md)
+По итогу мы уже можем получить сущность и все поля кроме ralations правильно размапятся. Однако для полноценной работы
+нужны другие [аннотации](ANNOTATIONS.md)
 
 ```php
 #[HttpEntity(name: 'contacts', client: "json_api.client", repository: ContactRepository::class, delete: 'delete-admin/{id}')]
@@ -158,20 +159,20 @@ class Contact
         $ids = [];
 
         if (false === empty($relationChanges)) {
-            foreach ($relationData as $name => $rel) {
-                $rels = [];
-                if (is_iterable($rel)) {
-                    foreach ($rel as $value) {
-                        $rels [] = [
+            foreach ($relationData as $name => $relation) {
+                $jsonApiRelation = [];
+                if ($relation instanceof Collection) {
+                    foreach ($relation as $value) {
+                        $jsonApiRelation [] = [
                             'type' => $value::NAME,
                             'id'   => $value->getId(),
                         ];
                     }
                 } else {
-                    $rels = ['type' => $rel::NAME, 'id' => $rel->getId()];
+                    $jsonApiRelation = ['type' => $rel::NAME, 'id' => $rel->getId()];
                 }
 
-                $relationship['relationships'][$name] = ['data' => $rels];
+                $relationship['relationships'][$name] = ['data' => $jsonApiRelation];
             }
         }
 

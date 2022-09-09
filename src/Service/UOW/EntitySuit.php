@@ -4,7 +4,6 @@ namespace Awwar\SymfonyHttpEntityManager\Service\UOW;
 
 use Adbar\Dot;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\EmptyValue;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMap;
 use Awwar\SymfonyHttpEntityManager\Service\Http\RelationMapperInterface;
 use Closure;
 use Exception;
@@ -120,23 +119,22 @@ class EntitySuit
 
         $changes = [];
 
-        foreach ($relations as $property => $data) {
-            $isIterable = $data['expects'] === RelationMap::MANY;
-            $copy = $this->copy['relations'][$property] ?? ($isIterable ? [] : null);
-            $original = $this->getRelationValue($this->original, $property, $data);
+        foreach ($relations as $property => $mapping) {
+            $copy = $this->copy['relations'][$property] ?? $mapping->getDefault();
+            $original = $this->getRelationValue($this->original, $property, $mapping);
 
-            $changes [$data['name']] = [
+            $changes [$mapping->getName()] = [
                 'original' => $original,
                 'copy'     => $copy,
-                'iterable' => $isIterable,
+                'iterable' => $mapping->isCollection(),
             ];
         }
 
         $relationChanges = [];
         $relationDeleted = [];
         foreach ($changes as $name => $value) {
-            $original = $value['original'];
             $isIterable = $value['iterable'];
+            $original = $value['original'];
             $copy = $value['copy'];
             if ($isIterable && is_iterable($original)) {
                 //ToDo: тут только на добавление, нужно добавить на удаление
@@ -190,22 +188,20 @@ class EntitySuit
 
         $relations = $this->entityMetadata->getRelationsMapping();
 
-        foreach ($relations as $property => $mappingData) {
+        foreach ($relations as $property => $mapping) {
             if (false === $this->issetProperty($this->original, $property)) {
-                $snapshot['relations'][$property] = $mappingData['expects'] === RelationMap::MANY
-                    ? []
-                    : null;
+                $snapshot[$property] = $mapping->getDefault();
 
                 continue;
             }
-            $relation = $this->getRelationValue($this->original, $property, $mappingData);
+            $relation = $this->getRelationValue($this->original, $property, $mapping);
 
-            if (false === is_iterable($relation)) {
-                $snapshot['relations'][$property] = $relation === null ? null : $this->getEntityUniqueId($relation);
-            } else {
+            if (is_iterable($relation) && $mapping->isCollection()) {
                 foreach ($relation as $subRelation) {
-                    $snapshot['relations'][$property][] = $this->getEntityUniqueId($subRelation);
+                    $snapshot[$property][] = $this->getEntityUniqueId($subRelation);
                 }
+            } else {
+                $snapshot[$property] = $relation === null ? null : $this->getEntityUniqueId($relation);
             }
         }
 
@@ -218,8 +214,8 @@ class EntitySuit
 
         $snapshot = [];
 
-        foreach ($relations as $property => $data) {
-            $snapshot [$data['name']] = $this->getRelationValue($this->original, $property, $data);
+        foreach ($relations as $property => $mapping) {
+            $snapshot[$mapping->getName()] = $this->getRelationValue($this->original, $property, $mapping);
         }
 
         return $snapshot;
@@ -261,10 +257,10 @@ class EntitySuit
         $relationsMapper = $this->entityMetadata->getRelationsMapper();
         $relations = $this->entityMetadata->getRelationsMapping();
 
-        foreach ($relations as $field => $payload) {
-            $mappedData = call_user_func($relationsMapper, $data, $payload['name']);
+        foreach ($relations as $field => $mapping) {
+            $mappedData = call_user_func($relationsMapper, $data, $mapping->getName());
 
-            $value = $relationMapper->map($mappedData, $payload);
+            $value = $relationMapper->map($mappedData, $mapping);
 
             $this->setValue($this->original, $field, $value);
         }
@@ -394,11 +390,11 @@ class EntitySuit
         return $this->getValue($this->original, '__initialized');
     }
 
-    private function getRelationValue(object $object, string $property, array $relationData): mixed
+    private function getRelationValue(object $object, string $property, RelationMapping $mapping): mixed
     {
         $data = $this->getValue($object, $property);
 
-        return $data ?? ($relationData['expects'] === RelationMap::ONE ? null : []);
+        return $data ?? $mapping->getDefault();
     }
 
     private function getEntityId(object $entity): ?string

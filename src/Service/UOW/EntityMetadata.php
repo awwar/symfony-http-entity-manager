@@ -126,7 +126,7 @@ class EntityMetadata
                 continue;
             }
             $this->properties[] = $filed;
-            $this->relationsMapping[$filed] = $relation['data'];
+            $this->relationsMapping[$filed] = RelationMapping::create($relation['data']);
         }
 
         $this->relationMapper = function (...$payload) {
@@ -256,6 +256,9 @@ class EntityMetadata
         return $this->scalarProperties;
     }
 
+    /**
+     * @return RelationMapping[]
+     */
     public function getRelationsMapping(): array
     {
         return $this->relationsMapping;

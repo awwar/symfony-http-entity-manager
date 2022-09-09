@@ -3,7 +3,6 @@
 namespace Awwar\SymfonyHttpEntityManager\Service\Http;
 
 use Awwar\SymfonyHttpEntityManager\Exception\NotFoundException;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMap;
 use Awwar\SymfonyHttpEntityManager\Service\Http\Collection\GeneralCollection;
 use Awwar\SymfonyHttpEntityManager\Service\Http\ListIterator\Data;
 use Awwar\SymfonyHttpEntityManager\Service\Http\Resource\FullData;
@@ -13,6 +12,7 @@ use Awwar\SymfonyHttpEntityManager\Service\UOW\EntitySuit;
 use Awwar\SymfonyHttpEntityManager\Service\UOW\EntitySuitFactory;
 use Awwar\SymfonyHttpEntityManager\Service\UOW\HttpUnitOfWorkInterface;
 use Awwar\SymfonyHttpEntityManager\Service\UOW\MetadataRegistryInterface;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\RelationMapping;
 use Generator;
 use LogicException;
 
@@ -172,12 +172,9 @@ class HttpEntityManager implements HttpEntityManagerInterface, RelationMapperInt
         } while (true);
     }
 
-    public function map(iterable $data, array $setting): ?object
+    public function map(iterable $data, RelationMapping $mapping): ?object
     {
-        $isOne = $setting['expects'] === RelationMap::ONE;
-        $entityClass = $setting['class'];
-
-        $result = $isOne ? null : [];
+        $result = $mapping->isCollection() ? [] : [null];
 
         foreach ($data as $datum) {
             if ($datum instanceof NoData) {
@@ -185,19 +182,18 @@ class HttpEntityManager implements HttpEntityManagerInterface, RelationMapperInt
                 break;
             }
 
-            $suit = $this->entitySuitFactory->createFromClass($entityClass);
+            $suit = $this->entitySuitFactory->createFromClass($mapping->getClass());
 
             $entity = $this->getEntity($datum, $suit);
 
-            if ($isOne) {
-                $result = $entity;
+            $result[] = $entity;
+
+            if ($mapping->isCollection() === false) {
                 break;
             }
-
-            $result[] = $entity;
         }
 
-        return $isOne ? $result : new GeneralCollection($result);
+        return $mapping->isCollection() ? new GeneralCollection($result) : array_pop($result);
     }
 
     private function getEntity(mixed $data, EntitySuit $suit): object

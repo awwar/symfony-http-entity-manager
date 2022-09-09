@@ -128,7 +128,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
                             continue;
                         }
 
-                        throw IdentityNotFoundException::createFromClassName(get_class($entity));
+                        throw IdentityNotFoundException::createFromClassName((string) get_class($entity));
                     }
                 }
 
