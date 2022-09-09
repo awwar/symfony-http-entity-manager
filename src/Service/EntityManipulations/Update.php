@@ -18,7 +18,7 @@ class Update implements ManipulationCommandInterface
         $data = $this->suit->callBeforeUpdate(
             $this->entityChanges,
             $this->relationChanges,
-            $this->suit->getScalarValues(),
+            $this->suit->getScalarSnapshot(),
             $this->suit->getRelationValues(),
         );
         $metadata = $this->suit->getMetadata();

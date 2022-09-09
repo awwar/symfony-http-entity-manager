@@ -51,10 +51,6 @@ trait ProxyTrait
         }, null, $parentClass);
 
         foreach ($properties as $property) {
-            if ($property === $idProperty) {
-                continue;
-            }
-
             $unsetter($this, $property);
         }
 

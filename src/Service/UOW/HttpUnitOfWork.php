@@ -2,10 +2,10 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service\UOW;
 
+use Awwar\SymfonyHttpEntityManager\Exception\IdentityNotFoundException;
 use Awwar\SymfonyHttpEntityManager\Service\EntityManipulations\Create;
 use Awwar\SymfonyHttpEntityManager\Service\EntityManipulations\Delete;
 use Awwar\SymfonyHttpEntityManager\Service\EntityManipulations\Update;
-use Awwar\SymfonyHttpEntityManager\Exception\IdentityNotFoundException;
 use Exception;
 
 class HttpUnitOfWork implements HttpUnitOfWorkInterface
@@ -48,6 +48,8 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
 
         if ($suit->isDeleted()) {
             $this->remove($suit);
+            unset($this->identityMap[$suit->getSPLId()]);
+            unset($this->keyToSplIdMap[$suit->getUniqueId()]);
         } else {
             $suit->startWatch();
             $this->identityMap[$suit->getSPLId()] = $suit;
@@ -113,7 +115,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
                     continue;
                 }
 
-                $entityChanges = $suit->getEntityChanges();
+                $entityChanges = $suit->getScalarChanges();
                 $relationChanges = $suit->getRelationChanges();
 
                 if ($suit->isChanged($entityChanges, $relationChanges) === false) {

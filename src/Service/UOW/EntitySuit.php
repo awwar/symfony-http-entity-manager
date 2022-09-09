@@ -51,44 +51,10 @@ class EntitySuit
 
     public function startWatch(): void
     {
-        $changes = [
-            'properties' => [],
-            'relations' => []
+        $this->copy = [
+            'properties' => $this->getScalarSnapshot(),
+            'relations'  => $this->getRelationSnapshot(),
         ];
-
-        $properties = $this->getMetadata()->getProperties();
-        $relations = $this->entityMetadata->getRelationsMap();
-
-        foreach ($properties as $property) {
-            if (isset($relations[$property])) {
-                if (false === $this->issetProperty($this->original, $property)) {
-                    $changes['relations'][$property] = $relations[$property]['expects'] === RelationMap::MANY
-                        ? []
-                        : null;
-
-                    continue;
-                }
-                $relation = $this->getRelationValue($this->original, $property, $relations[$property]);
-
-                if (false === is_iterable($relation)) {
-                    $changes['relations'][$property] = $relation === null ? null : $this->getEntityUniqueId($relation);
-                } else {
-                    foreach ($relation as $subRelation) {
-                        $changes['relations'][$property][] = $this->getEntityUniqueId($subRelation);
-                    }
-                }
-            } else {
-                if ($property === $this->getMetadata()->getIdProperty()) {
-                    $value = $this->getEntityId($this->original);
-                } else {
-                    $value = $this->getValue($this->original, $property);
-                }
-
-                $changes['properties'][$property] = $value;
-            }
-        }
-
-        $this->copy = $changes;
     }
 
     public function getId(): ?string
@@ -118,49 +84,27 @@ class EntitySuit
         return $this->isDeleted;
     }
 
-    public function getEntityChanges(): array
+    public function getScalarChanges(): array
     {
         if ($this->copy === null) {
             throw new Exception("Got suit without copy!");
         }
 
-        $properties = $this->entityMetadata->getProperties();
-        $relations = $this->entityMetadata->getRelationsMap();
+        $actual = $this->getScalarSnapshot();
+        $copy = $this->copy['properties'];
+
+        $properties = $this->entityMetadata->getScalarProperties();
 
         $changes = [];
 
         foreach ($properties as $property) {
-            if (
-                isset($relations[$property])
-                || $this->issetProperty($this->original, $property) === false
-            ) {
-                continue;
+            // ToDo: покрыть тестами возможные кейсы
+            $actualValue = $actual[$property] ?? null;
+            $copyValue = $copy[$property] ?? null;
+
+            if ($actualValue !== $copyValue) {
+                $changes[$property] = $actualValue;
             }
-
-            $left = $this->getValue($this->original, $property);
-            $right = $this->copy['properties'][$property];
-
-            if ($left !== $right) {
-                $changes[$property] = $left;
-            }
-        }
-
-        return $changes;
-    }
-
-    public function getScalarValues(): array
-    {
-        $properties = $this->entityMetadata->getProperties();
-        $relations = $this->entityMetadata->getRelationsMap();
-
-        $changes = [];
-
-        foreach ($properties as $property) {
-            if (isset($relations[$property]) || $property === $this->entityMetadata->getIdProperty()) {
-                continue;
-            }
-
-            $changes[$property] = $this->getValue($this->original, $property);
         }
 
         return $changes;
@@ -172,7 +116,7 @@ class EntitySuit
             throw new Exception("Got suit without copy!");
         }
 
-        $relations = $this->entityMetadata->getRelationsMap();
+        $relations = $this->entityMetadata->getRelationsMapping();
 
         $changes = [];
 
@@ -223,21 +167,62 @@ class EntitySuit
         return $relationChanges;
     }
 
+    public function getScalarSnapshot(): array
+    {
+        $properties = $this->entityMetadata->getScalarProperties();
+
+        $snapshot = [];
+
+        foreach ($properties as $property) {
+            if ($property === $this->entityMetadata->getIdProperty()) {
+                continue;
+            }
+
+            $snapshot[$property] = $this->getValue($this->original, $property);
+        }
+
+        return $snapshot;
+    }
+
+    public function getRelationSnapshot(): array
+    {
+        $snapshot = [];
+
+        $relations = $this->entityMetadata->getRelationsMapping();
+
+        foreach ($relations as $property => $mappingData) {
+            if (false === $this->issetProperty($this->original, $property)) {
+                $snapshot['relations'][$property] = $mappingData['expects'] === RelationMap::MANY
+                    ? []
+                    : null;
+
+                continue;
+            }
+            $relation = $this->getRelationValue($this->original, $property, $mappingData);
+
+            if (false === is_iterable($relation)) {
+                $snapshot['relations'][$property] = $relation === null ? null : $this->getEntityUniqueId($relation);
+            } else {
+                foreach ($relation as $subRelation) {
+                    $snapshot['relations'][$property][] = $this->getEntityUniqueId($subRelation);
+                }
+            }
+        }
+
+        return $snapshot;
+    }
+
     public function getRelationValues(): array
     {
-        if ($this->copy === null) {
-            throw new Exception("Got suit without copy!");
-        }
+        $relations = $this->entityMetadata->getRelationsMapping();
 
-        $relations = $this->entityMetadata->getRelationsMap();
-
-        $changes = [];
+        $snapshot = [];
 
         foreach ($relations as $property => $data) {
-            $changes [$data['name']] = $this->getRelationValue($this->original, $property, $data);
+            $snapshot [$data['name']] = $this->getRelationValue($this->original, $property, $data);
         }
 
-        return $changes;
+        return $snapshot;
     }
 
     public function isNew(): bool
@@ -274,7 +259,7 @@ class EntitySuit
         }
 
         $relationsMapper = $this->entityMetadata->getRelationsMapper();
-        $relations = $this->entityMetadata->getRelationsMap();
+        $relations = $this->entityMetadata->getRelationsMapping();
 
         foreach ($relations as $field => $payload) {
             $mappedData = call_user_func($relationsMapper, $data, $payload['name']);

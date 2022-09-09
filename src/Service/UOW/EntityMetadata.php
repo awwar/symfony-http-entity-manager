@@ -44,7 +44,9 @@ class EntityMetadata
 
     private array $filedMap = [];
 
-    private array $relationsMap = [];
+    private array $relationsMapping = [];
+
+    private array $scalarProperties = [];
 
     private Closure $relationMapper;
 
@@ -58,9 +60,9 @@ class EntityMetadata
 
     private array $filterQuery = [];
 
-    private array|string $getOneQuery = [];
+    private array $getOneQuery = [];
 
-    private array|string $filterOneQuery = [];
+    private array $filterOneQuery = [];
 
     /**
      * @param class-string<object> $className
@@ -79,11 +81,11 @@ class EntityMetadata
 
         $this->useDiffOnUpdate = (bool) $annotations[UpdateMethod::class][0]['data']['use_diff'];
 
-        $this->filterQuery = $annotations[FilterQuery::class][0]['data'];
+        $this->filterQuery = (array) $annotations[FilterQuery::class][0]['data'];
 
-        $this->getOneQuery = $annotations[GetOneQuery::class][0]['data'];
+        $this->getOneQuery = (array) $annotations[GetOneQuery::class][0]['data'];
 
-        $this->filterOneQuery = $annotations[FilterOneQuery::class][0]['data'];
+        $this->filterOneQuery = (array) $annotations[FilterOneQuery::class][0]['data'];
 
         $proxyClass = Generator::PROXY_NAMESPACE . "{$className}Proxy";
 
@@ -118,6 +120,7 @@ class EntityMetadata
                 $this->filedMap[$condition][$filed] = $path;
             }
             $this->properties[] = $filed;
+            $this->scalarProperties[] = $filed;
         }
 
         $defaults = $annotations[DefaultValue::class];
@@ -136,7 +139,7 @@ class EntityMetadata
                 continue;
             }
             $this->properties[] = $filed;
-            $this->relationsMap[$filed] = $relation['data'];
+            $this->relationsMapping[$filed] = $relation['data'];
         }
 
         $this->relationMapper = function (...$payload) {
@@ -261,24 +264,29 @@ class EntityMetadata
         return $this->properties;
     }
 
-    public function getFilterQuery(): mixed
+    public function getScalarProperties(): array
+    {
+        return $this->scalarProperties;
+    }
+
+    public function getRelationsMapping(): array
+    {
+        return $this->relationsMapping;
+    }
+
+    public function getFilterQuery(): array
     {
         return $this->filterQuery;
     }
 
-    public function getGetOneQuery(): mixed
+    public function getGetOneQuery(): array
     {
         return $this->getOneQuery;
     }
 
-    public function getFilterOneQuery(): mixed
+    public function getFilterOneQuery(): array
     {
         return $this->filterOneQuery;
-    }
-
-    public function getRelationsMap(): array
-    {
-        return $this->relationsMap;
     }
 
     public function getRelationsMapper(): callable
