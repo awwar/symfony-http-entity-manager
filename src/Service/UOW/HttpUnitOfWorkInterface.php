@@ -1,8 +1,8 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\Http;
+namespace Awwar\SymfonyHttpEntityManager\Service\UOW;
 
-use Awwar\SymfonyHttpEntityManager\Service\Http\EntityManipulations\ManipulationCommandInterface;
+use Awwar\SymfonyHttpEntityManager\Service\EntityManipulations\ManipulationCommandInterface;
 
 interface HttpUnitOfWorkInterface
 {

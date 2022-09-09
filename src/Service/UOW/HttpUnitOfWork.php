@@ -1,10 +1,11 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\Http;
+namespace Awwar\SymfonyHttpEntityManager\Service\UOW;
 
-use Awwar\SymfonyHttpEntityManager\Service\Http\EntityManipulations\Create;
-use Awwar\SymfonyHttpEntityManager\Service\Http\EntityManipulations\Delete;
-use Awwar\SymfonyHttpEntityManager\Service\Http\EntityManipulations\Update;
+use Awwar\SymfonyHttpEntityManager\Service\EntityManipulations\Create;
+use Awwar\SymfonyHttpEntityManager\Service\EntityManipulations\Delete;
+use Awwar\SymfonyHttpEntityManager\Service\EntityManipulations\Update;
+use Awwar\SymfonyHttpEntityManager\Exception\IdentityNotFoundException;
 use Exception;
 
 class HttpUnitOfWork implements HttpUnitOfWorkInterface
@@ -42,7 +43,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
         }
 
         if (false === isset($this->identityMap[$suit->getSPLId()])) {
-            throw new Exception(sprintf("Unable to find %s by id: %s", $suit->getClass(), $suit->getId()));
+            throw IdentityNotFoundException::create($suit->getClass(), $suit->getId());
         }
 
         if ($suit->isDeleted()) {
@@ -125,7 +126,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
                             continue;
                         }
 
-                        throw new \RuntimeException(sprintf("Found unpersisted entity %s", get_class($entity)));
+                        throw IdentityNotFoundException::createFromClassName(get_class($entity));
                     }
                 }
 
@@ -147,7 +148,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
     public function getFromIdentity(EntitySuit $suit): EntitySuit
     {
         if (false === $this->hasSuit($suit)) {
-            throw new Exception(sprintf("Unable to find %s by id: %s", $suit->getClass(), $suit->getId()));
+            throw IdentityNotFoundException::create($suit->getClass(), $suit->getId());
         }
 
         $splId = $suit->isNew() ? $suit->getSPLId() : $this->keyToSplIdMap[$suit->getUniqueId()];

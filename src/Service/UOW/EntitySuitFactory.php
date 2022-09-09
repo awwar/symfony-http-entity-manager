@@ -1,12 +1,10 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\Http;
-
-use Awwar\SymfonyHttpEntityManager\Service\MetadataRegistry;
+namespace Awwar\SymfonyHttpEntityManager\Service\UOW;
 
 class EntitySuitFactory
 {
-    public function __construct(private MetadataRegistry $metadataRegistry)
+    public function __construct(private MetadataRegistryInterface $metadataRegistry)
     {
     }
 

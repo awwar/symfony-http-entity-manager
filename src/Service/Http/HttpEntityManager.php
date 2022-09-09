@@ -2,16 +2,25 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service\Http;
 
-use Awwar\SymfonyHttpEntityManager\Service\Http\Exception\NotFoundException;
+use Awwar\SymfonyHttpEntityManager\Exception\NotFoundException;
+use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMap;
+use Awwar\SymfonyHttpEntityManager\Service\Http\Collection\GeneralCollection;
 use Awwar\SymfonyHttpEntityManager\Service\Http\ListIterator\Data;
-use Awwar\SymfonyHttpEntityManager\Service\MetadataRegistry;
+use Awwar\SymfonyHttpEntityManager\Service\Http\Resource\FullData;
+use Awwar\SymfonyHttpEntityManager\Service\Http\Resource\NoData;
+use Awwar\SymfonyHttpEntityManager\Service\Http\Resource\Reference;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\EntitySuit;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\EntitySuitFactory;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\HttpUnitOfWorkInterface;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\MetadataRegistryInterface;
 use Generator;
+use LogicException;
 
-class HttpEntityManager implements HttpEntityManagerInterface
+class HttpEntityManager implements HttpEntityManagerInterface, RelationMapperInterface
 {
     public function __construct(
         private HttpUnitOfWorkInterface $unitOfWork,
-        private MetadataRegistry $metadataRegistry,
+        private MetadataRegistryInterface $metadataRegistry,
         private EntitySuitFactory $entitySuitFactory
     ) {
     }
@@ -28,7 +37,7 @@ class HttpEntityManager implements HttpEntityManagerInterface
 
             $data = $metadata->getClient()->get($metadata->getUrlForOne($id), $newCriteria);
 
-            $suit->callAfterRead($data, new RelationMapper($this->unitOfWork, $this, $this->entitySuitFactory));
+            $suit->callAfterRead($data, $this);
 
             $this->unitOfWork->commit($suit);
         }
@@ -105,7 +114,7 @@ class HttpEntityManager implements HttpEntityManagerInterface
             $metadata->getGetOneQuery()
         );
 
-        $suit->callAfterRead($data, new RelationMapper($this->unitOfWork, $this, $this->entitySuitFactory));
+        $suit->callAfterRead($data, $this);
     }
 
     public function getRepository(string $className): HttpRepositoryInterface
@@ -153,8 +162,7 @@ class HttpEntityManager implements HttpEntityManagerInterface
             }
 
             $newSuit = $this->entitySuitFactory->createFromClass($className);
-            $newSuit->callAfterRead($signal->getData(),
-                new RelationMapper($this->unitOfWork, $this, $this->entitySuitFactory));
+            $newSuit->callAfterRead($signal->getData(), $this);
 
             $this->unitOfWork->commit($newSuit);
 
@@ -162,5 +170,56 @@ class HttpEntityManager implements HttpEntityManagerInterface
 
             $iterator->next();
         } while (true);
+    }
+
+    public function map(iterable $data, array $setting): ?object
+    {
+        $isOne = $setting['expects'] === RelationMap::ONE;
+        $entityClass = $setting['class'];
+
+        $result = $isOne ? null : [];
+
+        foreach ($data as $datum) {
+            if ($datum instanceof NoData) {
+                # ToDo: фича по позднему проксированию пока в разработке
+                break;
+            }
+
+            $suit = $this->entitySuitFactory->createFromClass($entityClass);
+
+            $entity = $this->getEntity($datum, $suit);
+
+            if ($isOne) {
+                $result = $entity;
+                break;
+            }
+
+            $result[] = $entity;
+        }
+
+        return $isOne ? $result : new GeneralCollection($result);
+    }
+
+    private function getEntity(mixed $data, EntitySuit $suit): object
+    {
+        if ($data instanceof FullData) {
+            $suit->setIdAfterRead($data->getData());
+        } elseif ($data instanceof Reference) {
+            $suit->proxy(fn ($obj) => $this->refresh($obj), $data->getId());
+        } else {
+            throw new LogicException("Unable to map relation - invalid data type!");
+        }
+
+        if (false === $this->unitOfWork->hasSuit($suit)) {
+            $this->unitOfWork->commit($suit, false);
+
+            if ($data instanceof FullData) {
+                $suit->callAfterRead($data->getData(), $this);
+            }
+
+            $this->unitOfWork->upgrade($suit);
+        }
+
+        return $this->unitOfWork->getFromIdentity($suit)->getOriginal();
     }
 }

@@ -1,11 +1,11 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\Http;
+namespace Awwar\SymfonyHttpEntityManager\Service\UOW;
 
 use Adbar\Dot;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\EmptyValue;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMap;
-use Awwar\SymfonyHttpEntityManager\Service\EntityMetadata;
+use Awwar\SymfonyHttpEntityManager\Service\Http\RelationMapperInterface;
 use Closure;
 use Exception;
 
@@ -255,7 +255,7 @@ class EntitySuit
         $this->setId($this->getByDot($dot, $map[$idProperty], $idProperty));
     }
 
-    public function callAfterRead(array $data, RelationMapper $relationMapper): void
+    public function callAfterRead(array $data, RelationMapperInterface $relationMapper): void
     {
         $map = $this->entityMetadata->getFieldMap('afterRead');
 

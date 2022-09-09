@@ -6,7 +6,7 @@ namespace Awwar\SymfonyHttpEntityManager\DependencyInjection;
 
 use Awwar\SymfonyHttpEntityManager\Service\EntityMetadataObtainer;
 use Awwar\SymfonyHttpEntityManager\Service\HttpEntitiesDiscovery;
-use Awwar\SymfonyHttpEntityManager\Service\MetadataRegistry;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\MetadataRegistry;
 use ReflectionClass;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;

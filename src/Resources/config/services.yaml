@@ -6,7 +6,3 @@ services:
     Awwar\SymfonyHttpEntityManager\:
         resource: '../../*'
         exclude: '../../{DependencyInjection,Entity,Migrations,Tests,Resources}'
-
-    Awwar\SymfonyHttpEntityManager\Service\Http\RelationMapper:
-        autowire: false
-        autoconfigure: false

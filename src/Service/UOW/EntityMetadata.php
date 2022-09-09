@@ -1,6 +1,6 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service;
+namespace Awwar\SymfonyHttpEntityManager\Service\UOW;
 
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\CreateLayout;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\DefaultValue;
@@ -16,8 +16,6 @@ use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMap;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMapper;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\UpdateLayout;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\UpdateMethod;
-use Awwar\SymfonyHttpEntityManager\Service\Http\Client;
-use Awwar\SymfonyHttpEntityManager\Service\Http\ClientInterface;
 use Awwar\SymfonyHttpEntityManager\Service\Http\HttpRepositoryInterface;
 use Awwar\SymfonyHttpEntityManager\Service\ProxyGenerator\Generator;
 use Closure;
@@ -65,6 +63,8 @@ class EntityMetadata
     private array|string $filterOneQuery = [];
 
     /**
+     * @param class-string<object> $className
+     * @param array $annotations
      * @throws ReflectionException
      */
     public function __construct(string $className, array $annotations)
@@ -283,12 +283,14 @@ class EntityMetadata
 
     public function getRelationsMapper(): callable
     {
-        return $this->relationMapper->bindTo($this->emptyInstance, $this->emptyInstance);
+        return $this->relationMapper->bindTo($this->emptyInstance, $this->emptyInstance)
+            ?? throw new \RuntimeException("Unable to bind relationMapper");
     }
 
     public function getListDetermination(): callable
     {
-        return $this->listDetermination->bindTo($this->emptyInstance, $this->emptyInstance);
+        return $this->listDetermination->bindTo($this->emptyInstance, $this->emptyInstance)
+            ?? throw new \RuntimeException("Unable to bind listDetermination");
     }
 
     public function getEmptyInstance(): object

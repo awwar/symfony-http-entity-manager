@@ -1,8 +1,8 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\Http\EntityManipulations;
+namespace Awwar\SymfonyHttpEntityManager\Service\EntityManipulations;
 
-use Awwar\SymfonyHttpEntityManager\Service\Http\EntitySuit;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\EntitySuit;
 
 class Delete implements ManipulationCommandInterface
 {
