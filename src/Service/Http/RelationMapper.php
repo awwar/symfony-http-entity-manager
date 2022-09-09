@@ -13,7 +13,8 @@ class RelationMapper implements RelationMapperInterface
 {
     public function __construct(
         private HttpUnitOfWorkInterface $unitOfWork,
-        private HttpEntityManagerInterface $em
+        private HttpEntityManagerInterface $em,
+        private EntitySuitFactory $entitySuitFactory
     ) {
     }
 
@@ -55,7 +56,7 @@ class RelationMapper implements RelationMapperInterface
                 break;
             }
 
-            $suit = $this->unitOfWork->newEntity($entityClass);
+            $suit = $this->entitySuitFactory->createFromClass($entityClass);
 
             $entity = $this->getEntity($datum, $suit);
 
@@ -80,7 +81,7 @@ class RelationMapper implements RelationMapperInterface
             throw new LogicException("Unable to map relation - invalid data type!");
         }
 
-        if (false === $this->unitOfWork->hasEntity($suit)) {
+        if (false === $this->unitOfWork->hasSuit($suit)) {
             $this->unitOfWork->commit($suit, false);
 
             if ($data instanceof FullData) {
@@ -90,6 +91,6 @@ class RelationMapper implements RelationMapperInterface
             $this->unitOfWork->upgrade($suit);
         }
 
-        return $this->unitOfWork->getFromIdentityBySuit($suit)->getOriginal();
+        return $this->unitOfWork->getFromIdentity($suit)->getOriginal();
     }
 }

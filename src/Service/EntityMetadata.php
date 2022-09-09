@@ -2,9 +2,6 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service;
 
-use Awwar\SymfonyHttpEntityManager\Service\ProxyGenerator\Generator;
-use Closure;
-use Exception;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\CreateLayout;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\DefaultValue;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\EmptyValue;
@@ -22,6 +19,9 @@ use Awwar\SymfonyHttpEntityManager\Service\Annotation\UpdateMethod;
 use Awwar\SymfonyHttpEntityManager\Service\Http\Client;
 use Awwar\SymfonyHttpEntityManager\Service\Http\ClientInterface;
 use Awwar\SymfonyHttpEntityManager\Service\Http\HttpRepositoryInterface;
+use Awwar\SymfonyHttpEntityManager\Service\ProxyGenerator\Generator;
+use Closure;
+use Exception;
 use ReflectionClass;
 use ReflectionException;
 
@@ -249,7 +249,11 @@ class EntityMetadata
 
     public function getDefaultValue(string $property): mixed
     {
-        return isset($this->defaultMap[$property]) ? $this->defaultMap[$property] : EmptyValue::class;
+        if (array_key_exists($property, $this->defaultMap) === false) {
+            return EmptyValue::class;
+        }
+
+        return $this->defaultMap[$property];
     }
 
     public function getProperties(): array

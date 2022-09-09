@@ -2,10 +2,10 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service\Http;
 
-use Exception;
 use Awwar\SymfonyHttpEntityManager\Service\Http\EntityManipulations\Create;
 use Awwar\SymfonyHttpEntityManager\Service\Http\EntityManipulations\Delete;
 use Awwar\SymfonyHttpEntityManager\Service\Http\EntityManipulations\Update;
+use Exception;
 
 class HttpUnitOfWork implements HttpUnitOfWorkInterface
 {
@@ -14,20 +14,11 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
      */
     private array $identityMap = [];
 
-    private array $keyToSplMap = [];
-
-    public function __construct(private EntitySuitFactory $suitFactory)
-    {
-    }
-
-    public function newEntity(string $entityClass): EntitySuit
-    {
-        return $this->suitFactory->createFromClass($entityClass);
-    }
+    private array $keyToSplIdMap = [];
 
     public function commit(EntitySuit $suit, bool $withWatch = true): void
     {
-        if ($this->isSuitExist($suit)) {
+        if ($this->hasSuit($suit)) {
             return;
         }
 
@@ -35,12 +26,12 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
             $suit->startWatch();
         }
 
-        $spl = $suit->getSPL();
+        $splId = $suit->getSPLId();
 
-        $this->identityMap[$spl] = $suit;
+        $this->identityMap[$splId] = $suit;
 
         if (false === $suit->isNew()) {
-            $this->keyToSplMap[$suit->getUniqueId()] = $spl;
+            $this->keyToSplIdMap[$suit->getUniqueId()] = $splId;
         }
     }
 
@@ -50,7 +41,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
             throw new Exception("Unable to upgrade new entity");
         }
 
-        if (false === isset($this->identityMap[$suit->getSPL()])) {
+        if (false === isset($this->identityMap[$suit->getSPLId()])) {
             throw new Exception(sprintf("Unable to find %s by id: %s", $suit->getClass(), $suit->getId()));
         }
 
@@ -58,67 +49,64 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
             $this->remove($suit);
         } else {
             $suit->startWatch();
-            $this->identityMap[$suit->getSPL()] = $suit;
-            $this->keyToSplMap[$suit->getUniqueId()] = $suit->getSPL();
+            $this->identityMap[$suit->getSPLId()] = $suit;
+            $this->keyToSplIdMap[$suit->getUniqueId()] = $suit->getSPLId();
         }
     }
 
     public function delete(EntitySuit $suit): void
     {
-        if (false === $this->isSuitExist($suit)) {
+        if (false === $this->hasSuit($suit)) {
             return;
         }
 
         $suit->delete();
 
-        $newSuit = $this->getFromIdentityBySuit($suit);
+        $newSuit = $this->getFromIdentity($suit);
 
         $newSuit->delete();
     }
 
     public function remove(EntitySuit $suit): void
     {
-        if (false === $this->isSuitExist($suit)) {
+        if (false === $this->hasSuit($suit)) {
             return;
         }
 
-        $newSuit = $this->getFromIdentityBySuit($suit);
+        $newSuit = $this->getFromIdentity($suit);
 
         if (false === $newSuit->isNew()) {
-            unset($this->keyToSplMap[$newSuit->getUniqueId()]);
+            unset($this->keyToSplIdMap[$newSuit->getUniqueId()]);
         }
 
-        unset($this->identityMap[$newSuit->getSPL()]);
+        unset($this->identityMap[$newSuit->getSPLId()]);
     }
 
     public function clear(string $objectName = null): void
     {
         if ($objectName === null) {
             $this->identityMap = [];
-            $this->keyToSplMap = [];
+            $this->keyToSplIdMap = [];
         } else {
             foreach ($this->identityMap as $suit) {
-                if (get_class($suit->getOriginal()) === $objectName) {
+                if ($suit->getClass() === $objectName) {
                     $this->remove($suit);
                 }
             }
         }
     }
 
-    /**
-     * @inheritdoc
-     */
-    public function getChanges(): array
+    public function flush(): void
     {
         $forCreate = [];
         $forDelete = [];
         $forUpdate = [];
 
-        foreach ($this->identityMap as $suit) {
+        foreach ($this->identityMap as $splId => $suit) {
             if ($suit->isDeleted()) {
-                $forDelete[] = new Delete($suit);
+                $forDelete[$splId] = new Delete($suit);
             } elseif ($suit->isNew()) {
-                $forCreate[] = new Create($suit);
+                $forCreate[$splId] = new Create($suit);
             } else {
                 if (false === $suit->isProxyInitialized()) {
                     continue;
@@ -133,53 +121,44 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
 
                 foreach ($relationChanges as $relations) {
                     foreach ($relations as $entity) {
-                        $suit = $this->suitFactory->create($entity);
-
-                        if ($this->isSuitExist($suit)) {
+                        if (isset($this->identityMap[spl_object_id($entity)])) {
                             continue;
                         }
 
-                        $this->commit($suit);
-
-                        $forCreate[] = new Create($suit);
+                        throw new \RuntimeException(sprintf("Found unpersisted entity %s", get_class($entity)));
                     }
                 }
 
-                $forUpdate[] = new Update($suit, $entityChanges, $relationChanges);
+                $forUpdate[$splId] = new Update($suit, $entityChanges, $relationChanges);
             }
         }
 
-        return array_merge($forCreate, $forUpdate, $forDelete);
+        $manipulations = array_merge($forCreate, $forUpdate, $forDelete);
+
+        foreach ($manipulations as $manipulation) {
+            $manipulation->execute();
+
+            $suit = $manipulation->getSuit();
+
+            $this->upgrade($suit);
+        }
     }
 
-    public function getFromIdentity(string $id, string $entityClass): EntitySuit
+    public function getFromIdentity(EntitySuit $suit): EntitySuit
     {
-        $key = sha1($id . $entityClass);
-        $spl = $this->keyToSplMap[$key] ?? throw new Exception("Unable to find $entityClass by id: $id");
-
-        return $this->identityMap[$spl];
-    }
-
-    public function hasEntity(EntitySuit $suit): bool
-    {
-        return $this->isSuitExist($suit);
-    }
-
-    public function getFromIdentityBySuit(EntitySuit $suit): EntitySuit
-    {
-        if (false === $this->isSuitExist($suit)) {
+        if (false === $this->hasSuit($suit)) {
             throw new Exception(sprintf("Unable to find %s by id: %s", $suit->getClass(), $suit->getId()));
         }
 
-        $spl = $suit->isNew() ? $suit->getSPL() : $this->keyToSplMap[$suit->getUniqueId()];
+        $splId = $suit->isNew() ? $suit->getSPLId() : $this->keyToSplIdMap[$suit->getUniqueId()];
 
-        return $this->identityMap[$spl];
+        return $this->identityMap[$splId];
     }
 
-    public function isSuitExist(EntitySuit $suit): bool
+    public function hasSuit(EntitySuit $suit): bool
     {
         return $suit->isNew()
-            ? isset($this->identityMap[$suit->getSPL()])
-            : isset($this->keyToSplMap[$suit->getUniqueId()]);
+            ? isset($this->identityMap[$suit->getSPLId()])
+            : isset($this->keyToSplIdMap[$suit->getUniqueId()]);
     }
 }

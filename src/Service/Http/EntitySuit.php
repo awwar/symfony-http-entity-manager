@@ -3,18 +3,16 @@
 namespace Awwar\SymfonyHttpEntityManager\Service\Http;
 
 use Adbar\Dot;
-use Closure;
-use Exception;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\EmptyValue;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMap;
 use Awwar\SymfonyHttpEntityManager\Service\EntityMetadata;
-
-use function DeepCopy\deep_copy;
+use Closure;
+use Exception;
 
 class EntitySuit
 {
     private bool $isDeleted = false;
-    private ?object $copy = null;
+    private array|null $copy = null;
 
     private function __construct(
         private object $original,
@@ -53,7 +51,35 @@ class EntitySuit
 
     public function startWatch(): void
     {
-        $this->copy = deep_copy($this->original);
+        $changes = ['properties' => [], 'relations' => []];
+
+        $properties = $this->getMetadata()->getProperties();
+        $relations = $this->entityMetadata->getRelationsMap();
+
+        foreach ($properties as $property) {
+            if (isset($relations[$property])) {
+                if (false === $this->issetProperty($this->original, $property)) {
+                    $changes['relations'][$property] = $relations[$property]['expects'] === RelationMap::MANY
+                        ? []
+                        : null;
+
+                    continue;
+                }
+                $relation = $this->getRelationValue($this->original, $property, $relations[$property]);
+
+                if (false === is_iterable($relation)) {
+                    $changes['relations'][$property] = $relation === null ? null : $this->getEntityUniqueId($relation);
+                } else {
+                    foreach ($relation as $subRelation) {
+                        $changes['relations'][$property][] = $this->getEntityUniqueId($subRelation);
+                    }
+                }
+            } else {
+                $changes['properties'][$property] = $this->getValue($this->original, $property);
+            }
+        }
+
+        $this->copy = $changes;
     }
 
     public function getId(): ?string
@@ -98,13 +124,12 @@ class EntitySuit
             if (
                 isset($relations[$property])
                 || $this->issetProperty($this->original, $property) === false
-                || $this->issetProperty($this->copy, $property) === false
             ) {
                 continue;
             }
 
             $left = $this->getValue($this->original, $property);
-            $right = $this->getValue($this->copy, $property);
+            $right = $this->copy['properties'][$property];
 
             if ($left !== $right) {
                 $changes[$property] = $left;
@@ -143,46 +168,46 @@ class EntitySuit
         $changes = [];
 
         foreach ($relations as $property => $data) {
-            $copy = $this->getRelationValue($this->copy, $property, $data);
+            $isIterable = $data['expects'] === RelationMap::MANY;
+            $copy = $this->copy['relations'][$property] ?? ($isIterable ? [] : null);
             $original = $this->getRelationValue($this->original, $property, $data);
 
-            $changes [$data['name']] = ['original' => $original, 'copy' => $copy];
+            $changes [$data['name']] = [
+                'original' => $original,
+                'copy'     => $copy,
+                'iterable' => $isIterable,
+            ];
         }
 
-        $originalBatch = [];
-        $copyBatch = [];
         $relationChanges = [];
+        $relationDeleted = [];
         foreach ($changes as $name => $value) {
             $original = $value['original'];
+            $isIterable = $value['iterable'];
             $copy = $value['copy'];
-            if (is_iterable($original) || is_iterable($copy)) {
+            if ($isIterable && is_iterable($original)) {
+                //ToDo: тут только на добавление, нужно добавить на удаление
                 foreach ($original as $originalEntity) {
                     $key = $this->getEntityIsNew($originalEntity)
-                        ? $this->getEntitySpl($originalEntity)
+                        ? $this->getEntitySplId($originalEntity)
                         : $this->getEntityUniqueId($originalEntity);
-                    $originalBatch[$key] = $originalEntity;
-                }
-                foreach ($copy as $copyEntity) {
-                    $copyBatch[$this->getEntityUniqueId($copyEntity)] = $copyEntity;
-                }
-
-                $diff = array_diff_key($originalBatch, $copyBatch);
-
-                if (false === empty($diff)) {
-                    $relationChanges[$name] = $diff;
-                }
-            } else {
-                if (is_object($original) && is_object($copy)) {
-                    if ($this->getEntityUniqueId($original) === $this->getEntityUniqueId($copy)) {
-                        continue;
+                    if (false === in_array($key, $copy)) {
+                        // added
+                        $relationChanges[$name][$key] = $originalEntity;
                     }
                 }
+            } else {
+                if ($original !== null) {
+                    $key = $this->getEntityUniqueId($original);
 
-                if (!is_object($original) && !is_object($copy)) {
-                    continue;
+                    if ($key === $copy) {
+                        continue;
+                    }
+
+                    $relationChanges[$name] = $original;
+                } elseif ($copy !== null) {
+                    $relationDeleted[$name] = true;
                 }
-
-                $relationChanges[$name] = $original;
             }
         }
 
@@ -211,9 +236,9 @@ class EntitySuit
         return $this->getEntityIsNew($this->original);
     }
 
-    public function getSPL(): string
+    public function getSPLId(): string
     {
-        return $this->getEntitySpl($this->original);
+        return $this->getEntitySplId($this->original);
     }
 
     public function getUniqueId(): string
@@ -239,11 +264,11 @@ class EntitySuit
             $this->setValue($this->original, $field, $this->getByDot($dot, $path, $field));
         }
 
-        $mapper = $this->entityMetadata->getRelationsMapper();
+        $relationsMapper = $this->entityMetadata->getRelationsMapper();
         $relations = $this->entityMetadata->getRelationsMap();
 
         foreach ($relations as $field => $payload) {
-            $mappedData = call_user_func($mapper, $data, $payload['name']);
+            $mappedData = call_user_func($relationsMapper, $data, $payload['name']);
 
             $value = $relationMapper->map($mappedData, $payload);
 
@@ -411,9 +436,9 @@ class EntitySuit
         return sha1($this->getEntityId($entity) . get_class($entity));
     }
 
-    private function getEntitySpl(object $entity): int
+    private function getEntitySplId(object $entity): string
     {
-        return spl_object_id($entity);
+        return (string) spl_object_id($entity);
     }
 
     private function setValue(object $object, string $property, mixed $value): void

@@ -6,7 +6,6 @@ use Awwar\SymfonyHttpEntityManager\Service\Http\Exception\NotFoundException;
 use Awwar\SymfonyHttpEntityManager\Service\Http\ListIterator\Data;
 use Awwar\SymfonyHttpEntityManager\Service\MetadataRegistry;
 use Generator;
-use Throwable;
 
 class HttpEntityManager implements HttpEntityManagerInterface
 {
@@ -19,22 +18,22 @@ class HttpEntityManager implements HttpEntityManagerInterface
 
     public function find(string $className, mixed $id, array $criteria = []): object
     {
-        try {
-            return $this->unitOfWork->getFromIdentity($id, $className)->getOriginal();
-        } catch (Throwable) {
-            $suit = $this->unitOfWork->newEntity($className);
+        $suit = $this->entitySuitFactory->createFromClass($className);
+        $suit->setId($id);
+
+        if (false === $this->unitOfWork->hasSuit($suit)) {
             $metadata = $suit->getMetadata();
 
             $newCriteria = array_merge($metadata->getGetOneQuery(), $criteria);
 
             $data = $metadata->getClient()->get($metadata->getUrlForOne($id), $newCriteria);
 
-            $suit->callAfterRead($data, new RelationMapper($this->unitOfWork, $this));
+            $suit->callAfterRead($data, new RelationMapper($this->unitOfWork, $this, $this->entitySuitFactory));
 
             $this->unitOfWork->commit($suit);
-
-            return $this->unitOfWork->getFromIdentityBySuit($suit)->getOriginal();
         }
+
+        return $this->unitOfWork->getFromIdentity($suit)->getOriginal();
     }
 
     public function filter(string $className, array $criteria, bool $isFilterOne = false): Generator
@@ -72,15 +71,7 @@ class HttpEntityManager implements HttpEntityManagerInterface
 
     public function flush(): void
     {
-        $manipulations = $this->unitOfWork->getChanges();
-
-        foreach ($manipulations as $manipulation) {
-            $manipulation->execute();
-
-            $suit = $manipulation->getSuit();
-
-            $this->unitOfWork->upgrade($suit);
-        }
+        $this->unitOfWork->flush();
     }
 
     public function remove(object $object): void
@@ -106,7 +97,7 @@ class HttpEntityManager implements HttpEntityManagerInterface
     {
         $suit = $this->entitySuitFactory->createDirty($object);
 
-        $suit = $this->unitOfWork->getFromIdentityBySuit($suit);
+        $suit = $this->unitOfWork->getFromIdentity($suit);
         $metadata = $suit->getMetadata();
 
         $data = $metadata->getClient()->get(
@@ -114,7 +105,7 @@ class HttpEntityManager implements HttpEntityManagerInterface
             $metadata->getGetOneQuery()
         );
 
-        $suit->callAfterRead($data, new RelationMapper($this->unitOfWork, $this));
+        $suit->callAfterRead($data, new RelationMapper($this->unitOfWork, $this, $this->entitySuitFactory));
     }
 
     public function getRepository(string $className): HttpRepositoryInterface
@@ -126,7 +117,7 @@ class HttpEntityManager implements HttpEntityManagerInterface
     {
         $suit = $this->entitySuitFactory->createDirty($object);
 
-        return $this->unitOfWork->hasEntity($suit);
+        return $this->unitOfWork->hasSuit($suit);
     }
 
     public function merge(object $object): void
@@ -161,14 +152,13 @@ class HttpEntityManager implements HttpEntityManagerInterface
                 continue;
             }
 
-            $newSuit = $this->unitOfWork->newEntity($className);
-            $newSuit->callAfterRead($signal->getData(), new RelationMapper($this->unitOfWork, $this));
+            $newSuit = $this->entitySuitFactory->createFromClass($className);
+            $newSuit->callAfterRead($signal->getData(),
+                new RelationMapper($this->unitOfWork, $this, $this->entitySuitFactory));
 
-            $entity = $newSuit->getOriginal();
+            $this->unitOfWork->commit($newSuit);
 
-            $this->persist($entity);
-
-            yield $entity;
+            yield $newSuit->getOriginal();
 
             $iterator->next();
         } while (true);

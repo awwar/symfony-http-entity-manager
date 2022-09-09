@@ -16,18 +16,9 @@ interface HttpUnitOfWorkInterface
 
     public function clear(string $objectName = null): void;
 
-    public function getFromIdentity(string $id, string $entityClass): EntitySuit;
+    public function getFromIdentity(EntitySuit $suit): EntitySuit;
 
-    public function newEntity(string $entityClass): EntitySuit;
+    public function hasSuit(EntitySuit $suit): bool;
 
-    public function hasEntity(EntitySuit $suit): bool;
-
-    public function getFromIdentityBySuit(EntitySuit $suit): EntitySuit;
-
-    public function isSuitExist(EntitySuit $suit): bool;
-
-    /**
-     * @return ManipulationCommandInterface[]
-     */
-    public function getChanges(): array;
+    public function flush(): void;
 }
