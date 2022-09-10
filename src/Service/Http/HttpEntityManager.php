@@ -3,20 +3,17 @@
 namespace Awwar\SymfonyHttpEntityManager\Service\Http;
 
 use Awwar\SymfonyHttpEntityManager\Exception\NotFoundException;
-use Awwar\SymfonyHttpEntityManager\Service\Http\Collection\GeneralCollection;
 use Awwar\SymfonyHttpEntityManager\Service\Http\ListIterator\Data;
 use Awwar\SymfonyHttpEntityManager\Service\Http\Resource\FullData;
 use Awwar\SymfonyHttpEntityManager\Service\Http\Resource\NoData;
 use Awwar\SymfonyHttpEntityManager\Service\Http\Resource\Reference;
-use Awwar\SymfonyHttpEntityManager\Service\UOW\EntitySuit;
 use Awwar\SymfonyHttpEntityManager\Service\UOW\EntitySuitFactory;
 use Awwar\SymfonyHttpEntityManager\Service\UOW\HttpUnitOfWorkInterface;
 use Awwar\SymfonyHttpEntityManager\Service\UOW\MetadataRegistryInterface;
-use Awwar\SymfonyHttpEntityManager\Service\UOW\RelationMapping;
 use Generator;
 use LogicException;
 
-class HttpEntityManager implements HttpEntityManagerInterface, RelationMapperInterface
+class HttpEntityManager implements HttpEntityManagerInterface, EntityCreatorInterface
 {
     public function __construct(
         private HttpUnitOfWorkInterface $unitOfWork,
@@ -172,36 +169,16 @@ class HttpEntityManager implements HttpEntityManagerInterface, RelationMapperInt
         } while (true);
     }
 
-    public function map(iterable $data, RelationMapping $mapping): ?object
+    public function createEntityWithData(string $className, mixed $data): ?object
     {
-        $result = $mapping->isCollection() ? [] : [null];
+        $suit = $this->entitySuitFactory->createFromClass($className);
 
-        foreach ($data as $datum) {
-            if ($datum instanceof NoData) {
-                # ToDo: фича по позднему проксированию пока в разработке
-                break;
-            }
-
-            $suit = $this->entitySuitFactory->createFromClass($mapping->getClass());
-
-            $entity = $this->getEntity($datum, $suit);
-
-            $result[] = $entity;
-
-            if ($mapping->isCollection() === false) {
-                break;
-            }
-        }
-
-        return $mapping->isCollection() ? new GeneralCollection($result) : array_pop($result);
-    }
-
-    private function getEntity(mixed $data, EntitySuit $suit): object
-    {
         if ($data instanceof FullData) {
             $suit->setIdAfterRead($data->getData());
         } elseif ($data instanceof Reference) {
             $suit->proxy(fn ($obj) => $this->refresh($obj), $data->getId());
+        } elseif ($data instanceof NoData) {
+            return null;
         } else {
             throw new LogicException("Unable to map relation - invalid data type!");
         }

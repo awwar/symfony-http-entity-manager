@@ -4,7 +4,8 @@ namespace Awwar\SymfonyHttpEntityManager\Service\UOW;
 
 use Adbar\Dot;
 use Awwar\SymfonyHttpEntityManager\Service\Annotation\EmptyValue;
-use Awwar\SymfonyHttpEntityManager\Service\Http\RelationMapperInterface;
+use Awwar\SymfonyHttpEntityManager\Service\Http\Collection\GeneralCollection;
+use Awwar\SymfonyHttpEntityManager\Service\Http\EntityCreatorInterface;
 use Closure;
 use Exception;
 
@@ -66,11 +67,6 @@ class EntitySuit
         $property = $this->entityMetadata->getIdProperty();
 
         $this->setValue($this->original, $property, $id);
-    }
-
-    public function isChanged(array $dataChanges, array $relationChanges): bool
-    {
-        return false === empty($dataChanges) || false === empty($relationChanges);
     }
 
     public function delete(): void
@@ -245,25 +241,27 @@ class EntitySuit
         $this->setId($this->getByDot($dot, $map[$idProperty], $idProperty));
     }
 
-    public function callAfterRead(array $data, RelationMapperInterface $relationMapper): void
+    public function callAfterRead(array $data, EntityCreatorInterface $creator): void
     {
         $map = $this->entityMetadata->getFieldMap('afterRead');
 
-        $dot = new Dot($data);
-        foreach ($map as $field => $path) {
-            $this->setValue($this->original, $field, $this->getByDot($dot, $path, $field));
-        }
+        $this->mapScalarData($map, $data);
 
-        $relationsMapper = $this->entityMetadata->getRelationsMapper();
-        $relations = $this->entityMetadata->getRelationsMapping();
+        $this->mapNestedRelation($data, $creator);
+    }
 
-        foreach ($relations as $field => $mapping) {
-            $mappedData = call_user_func($relationsMapper, $data, $mapping->getName());
+    public function callAfterCreate(array $data): void
+    {
+        $map = $this->entityMetadata->getFieldMap('afterCreate');
 
-            $value = $relationMapper->map($mappedData, $mapping);
+        $this->mapScalarData($map, $data);
+    }
 
-            $this->setValue($this->original, $field, $value);
-        }
+    public function callAfterUpdate(array $data): void
+    {
+        $map = $this->entityMetadata->getFieldMap('afterUpdate');
+
+        $this->mapScalarData($map, $data);
     }
 
     public function callBeforeCreate(array $entityData, array $relationData): array
@@ -291,16 +289,6 @@ class EntitySuit
         }
 
         return $dot->all();
-    }
-
-    public function callAfterCreate(array $data): void
-    {
-        $map = $this->entityMetadata->getFieldMap('afterCreate');
-
-        $dot = new Dot($data);
-        foreach ($map as $field => $path) {
-            $this->setValue($this->original, $field, $this->getByDot($dot, $path, $field));
-        }
     }
 
     public function callBeforeUpdate(
@@ -339,16 +327,6 @@ class EntitySuit
         }
 
         return $dot->all();
-    }
-
-    public function callAfterUpdate(array $data): void
-    {
-        $map = $this->entityMetadata->getFieldMap('afterUpdate');
-
-        $dot = new Dot($data);
-        foreach ($map as $field => $path) {
-            $this->setValue($this->original, $field, $this->getByDot($dot, $path, $field));
-        }
     }
 
     public function proxy(Closure $managerCallback, mixed $id = null): void
@@ -429,6 +407,49 @@ class EntitySuit
     private function getEntitySplId(object $entity): string
     {
         return (string) spl_object_id($entity);
+    }
+
+    private function mapScalarData(array $map, array $data): void
+    {
+        $dot = new Dot($data);
+
+        foreach ($map as $field => $path) {
+            $this->setValue($this->original, $field, $this->getByDot($dot, $path, $field));
+        }
+    }
+
+    private function mapNestedRelation(array $data, EntityCreatorInterface $creator): void
+    {
+        $relationsMapper = $this->entityMetadata->getRelationsMapper();
+        $relations = $this->entityMetadata->getRelationsMapping();
+
+        foreach ($relations as $field => $mapping) {
+            $mappedData = call_user_func($relationsMapper, $data, $mapping->getName());
+
+            $value = $this->createNestedRelation($mapping, $mappedData, $creator);
+
+            $this->setValue($this->original, $field, $value);
+        }
+    }
+
+    private function createNestedRelation(
+        RelationMapping $mapping,
+        iterable $relationIterator,
+        EntityCreatorInterface $creator
+    ): ?object {
+        $result = [];
+
+        foreach ($relationIterator as $dataContainer) {
+            $result[] = $creator->createEntityWithData($mapping->getClass(), $dataContainer);
+
+            if ($mapping->isCollection() === false) {
+                break;
+            }
+        }
+
+        $result = array_filter($result);
+
+        return $mapping->isCollection() ? new GeneralCollection($result) : array_pop($result);
     }
 
     private function setValue(object $object, string $property, mixed $value): void

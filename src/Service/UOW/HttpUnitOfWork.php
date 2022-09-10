@@ -115,10 +115,10 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
                     continue;
                 }
 
-                $entityChanges = $suit->getScalarChanges();
+                $scalarChanges = $suit->getScalarChanges();
                 $relationChanges = $suit->getRelationChanges();
 
-                if ($suit->isChanged($entityChanges, $relationChanges) === false) {
+                if (empty($scalarChanges) && empty($relationChanges)) {
                     continue;
                 }
 
@@ -132,7 +132,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
                     }
                 }
 
-                $forUpdate[$splId] = new Update($suit, $entityChanges, $relationChanges);
+                $forUpdate[$splId] = new Update($suit, $scalarChanges, $relationChanges);
             }
         }
 

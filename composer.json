@@ -11,8 +11,7 @@
         "symfony/http-client-contracts": "^2.4",
         "symfony/http-kernel": "~5.4",
         "symfony/finder": "~5.4",
-        "adbario/php-dot-notation": "^3.1",
-        "myclabs/deep-copy": "1.10.2"
+        "adbario/php-dot-notation": "^3.1"
     },
     "autoload": {
         "psr-4": {

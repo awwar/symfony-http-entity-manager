@@ -4,7 +4,7 @@ namespace Awwar\SymfonyHttpEntityManager\Service\Http;
 
 use Awwar\SymfonyHttpEntityManager\Service\UOW\RelationMapping;
 
-interface RelationMapperInterface
+interface EntityCreatorInterface
 {
-    public function map(iterable $data, RelationMapping $mapping): ?object;
+    public function createEntityWithData(string $className, mixed $data): ?object;
 }
