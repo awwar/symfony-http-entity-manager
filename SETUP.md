@@ -1,11 +1,11 @@
 # SymfonyHttpEntityManager
 
-Для синхронизации вашей сущности с внешним Api нужно пройти 3 простых шага:
+To synchronize your entity with an external API, you need to go through 3 simple steps:
 
-## Настройка
+## Setting up
 
-1) Создать файл `config/packages/symfony_http_entity_manager.yaml`
-2) В содержимом указать:
+1) Create file `config/packages/symfony_http_entity_manager.yaml`
+2) Specify in the content:
 
 ```yaml
 symfony_http_entity_manager:
@@ -14,17 +14,18 @@ symfony_http_entity_manager:
             directory: ./src/Domain
 ```
 
-В entity_mapping перечислить все места, где может быть сущность. Чем точнее вы укажете, тем быстрее пройдёт сборка
+In entity_mapping list all places where the entity can be. The more precise you specify, the faster the assembly will
+be.
 
-## Создание сущности
+## Create entity
 
-Допустим у нас есть сущность контакта, которую можно получить по Api в стандарте [JSON API](https://jsonapi.org/)
+Let's say we have a contact entity that can be obtained via Api in the [JSON API] standard (https://jsonapi.org/)
 
-Это достаточно сложный формат для нашей библиотеки и нам требуется ваша помощь чтоб с ним справится. Сначала посмотрим
-на сущность, а потом разберёмся какие аннотации нужно добавить чтоб библиотека смогла синхронизировать её с апи.
+This is a rather complex format for our library, and we need your help to cope with it. Let's see first on the entity,
+and then we will figure out what annotations need to be added so that the library can synchronize it with the api.
 
 ```php
-class Contact
+class contact
 {
     private ?string $id = null;
 
@@ -69,17 +70,17 @@ class Contact
 }
 ```
 
-Достаточно простая сущность, однако имеет в себе массив `deals`  и может хранить в себе `admin`
+A fairly simple entity, but it has an array of `deals` and can store `admin`
 
-Чтобы уже начать работать мы можем добавить 4 основные аннотации:
+To get started we can add 4 main annotations:
 
 - [HttpEntity](ANNOTATIONS.md#httpentity)
 - [FieldMap](ANNOTATIONS.md#fieldmap)
 - [RelationMap](ANNOTATIONS.md#relationmap)
 - [EntityId](ANNOTATIONS.md#entityid)
 
-По итогу мы уже можем получить сущность и все поля кроме ralations правильно размапятся. Однако для полноценной работы
-нужны другие [аннотации](ANNOTATIONS.md)
+As a result, we can already get the entity. All fields except relations will be mapped correctly. However, for full
+performance need other [annotations](ANNOTATIONS.md)
 
 ```php
 #[HttpEntity(name: 'contacts', client: "json_api.client", repository: ContactRepository::class, delete: 'delete-admin/{id}')]
@@ -202,7 +203,7 @@ class Contact
 }
 ```
 
-## Создание репозитория
+## Create a repository
 
 ```php
 use Awwar\SymfonyHttpEntityManager\Service\Http\HttpEntityManagerInterface;

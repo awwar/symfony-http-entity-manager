@@ -4,21 +4,21 @@ Require: <mark>YES</mark>
 
 Target: `class`
 
-Метка http сущности
+Http entity label
 
 ```php
 #[HttpEntity(name: 'contacts', client: "json_api.client", repository: ContactRepository::class, delete: 'delete-user/{id}')]
 ```
 
-`name` - имя сущности. Участвует в формировании url ресурса. По умолчанию `GET /{name}/{id}` или `POST /{name}`
+`name` is the name of the entity. Participates in the formation of the resource url. Default `GET /{name}/{id}`
+or `POST /{name}`
 
-`client` - http клиент, который будет использоваться для всех запросов. Требуется
-интерфейс `Symfony\Contracts\HttpClient\HttpClientInterface`. Можно использовать scoped_client
+`client` - the http client that will be used for all requests. Required
+interface `Symfony\Contracts\HttpClient\HttpClientInterface`. You can use scoped_client
 
-`repository` - репозиторий по умолчанию, необязательный параметр
+`repository` - default repository, optional
 
-`delete`,`update`,`create`,`list`,`one` - переопределение url для конкретных действий. Для подстановки id
-использовать `{id}`
+`delete`,`update`,`create`,`list`,`one` - url redefinition for specific actions. For id substitution use `{id}`
 
 ## EntityId
 
@@ -26,7 +26,7 @@ Require: <mark>YES</mark>
 
 Target: `property`
 
-Метка поля отвечающего за id
+Label of the field responsible for id
 
 ```php
 #[EntityId]
@@ -38,14 +38,14 @@ Require: <mark>YES</mark>
 
 Target: `property`
 
-Метка маппинга данных (не сущности)
+Data mapping label (not for nested entities)
 
 ```php
 #[FieldMap(all: 'data.id', preCreate: null)]
 ```
 
-Для указания пути к данным из запроса используется Dot Notation. То есть если после обновления сущности нам придёт ответ
-от сервера
+Dot Notation is used to specify the path to the data from the request. That is, if after updating the entity we receive
+an answer from the server
 
 ```json
 {
@@ -55,28 +55,28 @@ Target: `property`
 }
 ```
 
-То чтоб его замапить нужно прописать `postUpdate: 'data.id'`. Так же и наоборот если мы отправляем update на сервер то
-нужно прописать `preUpdate: 'data.id'` и получить вышеупомянутый json.
+To map it, you need to write `postUpdate: 'data.id'`. Similarly, and vice versa, if we send update to the server, then
+you need to write `preUpdate: 'data.id'` and get the above json.
 
-Всего существует 8 настроек маппинга:
+There are 8 mapping settings in total:
 
-`all` - при всех действиях
+`all` - for all actions
 
-`pre` - только в действиях начинающихся на pre
+`pre` - only in actions starting with pre
 
-`post` - только в действиях начинающихся на post
+`post` - only in actions starting with post
 
-`preCreate` - создание запроса перед созданием сущности
+`preCreate` - create a request before creating an entity
 
-`postCreate` - парсинг ответа после создания сущности
+`postCreate` - parsing the response after the entity has been created
 
-`preUpdate` - создание запроса перед обновлением сущности
+`preUpdate` - create a query before updating the entity
 
-`postUpdate` - парсинг ответа после обновления сущности
+`postUpdate` - parsing the response after updating the entity
 
-`postRead` - парсинг ответа после запроса сущности
+`postRead` - parsing the response after requesting an entity
 
-При сложной комбинаторики пользуйтесь правилом:
+For complex combinatorics, use the rule:
 
 `preCreate` > `pre` > `all`
 
@@ -86,37 +86,38 @@ Require: <mark>YES</mark>
 
 Target: `property`
 
-Метка маппинга связанных сущностей
+Related Entity Mapping Label
 
 ```php
 #[RelationMap(Deal::class, 'deals', RelationMap::MANY)]
 ```
 
-`class` - FQCN сущности на которую ссылается ваша сущность (это тоже должна быть `HttpEntity`)
+`class` - FQCN of the entity your entity refers to (this should also be `HttpEntity`)
 
-`name` - псевдоним связанной сущности
+`name` - the alias of the related entity
 
-`expects` - если коллекция то `RelationMap::MANY`. Если одна, то `RelationMap::ONE`
+`expects` - if collection then `RelationMap::MANY`. If one, then `RelationMap::ONE`
 
 ## RelationMapper
 
-Require: <mark>Только если есть сущности</mark>
+Require: <mark>Only if there are entities</mark>
 
 Target: `method`
 
-Callback который поможет библиотеке правильно распарсить вложенные сущности.
+A callback that will help the library parse nested objects correctly.
 
-Маппер принимает в себя полученные от сервера данные и имя вложенной сущности.
+The mapper takes the data received from the server and the name of the nested entity.
 
-То есть у вас есть user, у него есть deals
+That is, you have a user, he has transactions
 
-В юзере вы пометили deals аттрибутом
+In the user, you marked transactions with the attribute
 
 ```php
 #[RelationMap(Deal::class, 'deals', RelationMap::MANY)]
 ```
 
-То в маппер придёт весь ответ, а в `$name` придёт то имя, которое вы написали во втором аргументе RelationMap
+Then the whole response will come to the mapper, and the name that you wrote in the second argument of RelationMap will
+come to `$name`
 
 ```php
     #[RelationMapper]
@@ -135,12 +136,12 @@ Callback который поможет библиотеке правильно �
     }
 ```
 
-`FullData` - в аргумент конструктора передайте те данные вложенной сущности, в том формате, которые бы вы хотели
-получить при отдельном запросе данной сущности. Допустим вы хотите выкинуть данные для `deals`, то положите в `FullData`
-данные в том формате которые приходят с `GET /deals/123`
+`FullData` - передать данные вложенной сущности в аргумент конструктора в том формате, который вы хотели бы получить при
+отдельном запросе для этого объекта. Допустим, вы хотите выкинуть данные для `сделок`, а потом вставить `FullData`
+данные в формате, который поставляется с `GET /deals/123`
 
-`Reference` - если во вложенной сущности вам приходят не данные, а только их id - положите этот id в `Reference`. Тогда
-сработает ленивая загрузка и сущность подгрузится тогда, когда вы обратитесь к её свойствам
+`Reference` - if in a nested entity you get not data, but only their id - put this id in `Reference`. Then lazy loading
+will work and the object will be fully loaded when accessing any unloaded property.
 
 ## ListDetermination
 
@@ -148,9 +149,9 @@ Require: <mark>YES</mark>
 
 Target: `method`
 
-Callback для выявления сущностей из списка сущностей
+Callback to identify entities from the list of entities
 
-Допустим при получении одной сущности (`GET /user/123`) ответ от сервера выглядит так
+Suppose when receiving one entity (`GET /user/123`) the response from the server looks like this
 
 ```json
 {
@@ -161,7 +162,7 @@ Callback для выявления сущностей из списка сущн
 }
 ```
 
-А при получении списка сущностей (`GET /user/`) так:
+And when getting a list of entities (`GET /user/`) like this:
 
 ```json
 {
@@ -181,7 +182,7 @@ Callback для выявления сущностей из списка сущн
 }
 ```
 
-Маппер должен выглядеть так:
+The mapper should look like this:
 
 ```php
     #[ListDetermination]
@@ -193,8 +194,8 @@ Callback для выявления сущностей из списка сущн
     }
 ```
 
-Вы должны выкинуть объект Data в первом аргументе конструктора которого должен лежать массив, похожий на тот, который бы
-пришёл при запросе одной сущности. А во втором аргументе ссылка на следующую страницу (или null если её нет)
+Throw out a Data object that will contain an array of data in the first argument of the constructor, similar to what you
+want to get when querying a single entity. And in the second - a link to the next page (or `null` if it does not exist)
 
 ## UpdateMethod
 
@@ -202,16 +203,15 @@ Require: <mark>NO</mark>
 
 Target: `class`
 
-Указывает каким HTTP методом нужно проводить обновление (PATCH или PUT)
+Specifies which HTTP method to update (PATCH or PUT)
 
 ```php
 #[UpdateMethod(name: Request::METHOD_PATCH)]
 ```
 
-`name` - HTTP метод (по умолчанию `METHOD_PATCH`)
+`name` - HTTP method (default `METHOD_PATCH`)
 
-`useDiff` - при обновлении отсылать ли только изменения или новое состояние целиком (по умолчанию true, то есть "только
-изменения")
+`useDiff` - when updating, whether to send only changes or all new state (true by default, i.e. "only changes")
 
 ## GetOneQuery
 
@@ -223,19 +223,19 @@ Require: <mark>NO</mark>
 
 Target: `class`
 
-Массив с query который будет подмешиваться к query в http при запросе одной, фильтрации и фильтрации одной сущности
-соответственно
+An array with the http request that will be merged with the overall http request when "requesting", "filtering", and "
+filtering one". request respectively
 
 ```php
 #[FilterOneQuery(['include' => 'user,deals', 'page' => ['size' => 1]])]
 #[GetOneQuery(callback: ['class', 'method'], args: [1, 2, 3])]
 ```
 
-`query` - массив с http query
+`query` - array of http query
 
-`callback` - callback массив (`[class, method]` или `[method]`)  которые должны вернуть массив с http query
+`callback` - callback array (`[class, method]` or `[method]`) which should return an array of http query
 
-`args` - аргументы для callback
+`args` - arguments for callback
 
 `query` > `callback`
 
@@ -245,7 +245,7 @@ Require: <mark>NO</mark>
 
 Target: `property`
 
-Значение по умолчанию если при маппинге данных из запроса на сущность, в запросе не было найдено данных
+Default value if key was not found in response
 
 ```php
 #[DefaultValue(null)]
@@ -259,14 +259,14 @@ Require: <mark>NO</mark>
 
 Target: `method`
 
-Callback для предварительного создания запроса на создание или обновление сущности
+Callback function for pre-creating an update request or creating an entity
 
 ```php
     #[UpdateLayout]
     #[CreateLayout]
     protected function layout(
         self $entity,
-        array $entityChanges = [],
+        array $nonRelationChanges = [],
         array $relationChanges = [],
         array $entityData = [],
         array $relationData = [],
@@ -275,12 +275,12 @@ Callback для предварительного создания запроса
     }
 ```
 
-`entity` - текущая сущность (старайтесь в этом методе не использовать `this`)
+`entity` - current entity (try not to use `this` in this method)
 
-`entityChanges` - изменение по полям
+`entityChanges` - not relationship changes
 
-`relationChanges` - изменения по связям
+`relationChanges` - relationship changes
 
-`entityData` - актуальные данные полей
+`entityData` - actual field data
 
-`relationData` - актуальные данные связей
+`relationData` - actual relationship data
