@@ -1,4 +1,4 @@
-# Получение ресурса
+# Get resource
 
 ```php
 $users = $this->httpEntityManager->getRepository(User::class);
@@ -24,11 +24,11 @@ curl --request GET \
 try {
     $user = $users->find(1234);
 } catch (NotFoundException $exception) {
-   # not found 
+   # not found
 }
 ```
 
-# Фильтрация ресурса
+# Resource filtering
 
 ```php
 $users = $this->httpEntityManager->getRepository(User::class);
@@ -36,7 +36,7 @@ $users = $this->httpEntityManager->getRepository(User::class);
 try {
     $user = $users->filterOne(['email' => 'user@mail.com']);
 } catch (NotFoundException $exception) {
-   # not found 
+   # not found
 }
 ```
 
@@ -60,7 +60,7 @@ foreach ($adultUsers as $user) {
 }
 ```
 
-# Добавление ресурса
+# Add resource
 
 ```php
 $users = $this->httpEntityManager->getRepository(User::class);
@@ -94,7 +94,7 @@ curl --request POST \
 '
 ```
 
-# Обновление ресурса
+# Resource update
 
 ```php
 $users = $this->httpEntityManager->getRepository(User::class);
@@ -113,7 +113,7 @@ $sasha->setSex("female");
 
 $this->httpEntityManager->flush();
 
-# должен обновится только пол, возраст остался прежним
+# only gender needs to be updated, age stays the same
 ```
 
 ```php
@@ -147,7 +147,7 @@ curl --request PATCH \
 '
 ```
 
-# Удаление ресурса
+# Deleting a resource
 
 ```php
 $users = $this->httpEntityManager->getRepository(User::class);

@@ -6,6 +6,3 @@ parameters:
         - src
     featureToggles:
         disableCheckMissingIterableValueType: false
-    ignoreErrors:
-        - message: '#^Service "[^"]+" is private.$#'
-          path: %rootDir%/../../../tests/

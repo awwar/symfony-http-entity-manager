@@ -1,10 +1,10 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\Http;
+namespace Awwar\SymfonyHttpEntityManager\Service\UOW;
 
-use Awwar\SymfonyHttpEntityManager\Service\Http\Exception\InvalidDataException;
-use Awwar\SymfonyHttpEntityManager\Service\Http\Exception\NotFoundException;
-use Awwar\SymfonyHttpEntityManager\Service\Http\Exception\NotProcessedException;
+use Awwar\SymfonyHttpEntityManager\Exception\InvalidDataException;
+use Awwar\SymfonyHttpEntityManager\Exception\NotFoundException;
+use Awwar\SymfonyHttpEntityManager\Exception\NotProcessedException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;

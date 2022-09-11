@@ -1,20 +1,20 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\Http\Exception;
+namespace Awwar\SymfonyHttpEntityManager\Exception;
 
 use DomainException;
 use Throwable;
 
-class NotProcessedException extends DomainException
+class InvalidDataException extends DomainException
 {
     private array $context = [];
 
     public function __construct(
         string $entity = "entity",
-        ?int $code = 500,
+        ?int $code = 422,
         ?Throwable $previous = null
     ) {
-        parent::__construct("Had some error while $entity procession", (int) $code, $previous);
+        parent::__construct("Invalid $entity data", (int) $code, $previous);
     }
 
     public function getContext(): array

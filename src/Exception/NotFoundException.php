@@ -1,6 +1,6 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\Http\Exception;
+namespace Awwar\SymfonyHttpEntityManager\Exception;
 
 use DomainException;
 use Throwable;

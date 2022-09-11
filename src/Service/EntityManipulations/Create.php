@@ -1,18 +1,18 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\Http\EntityManipulations;
+namespace Awwar\SymfonyHttpEntityManager\Service\EntityManipulations;
 
-use Awwar\SymfonyHttpEntityManager\Service\Http\EntitySuit;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\SuitedUpEntity;
 
 class Create implements ManipulationCommandInterface
 {
-    public function __construct(private EntitySuit $suit)
+    public function __construct(private SuitedUpEntity $suit)
     {
     }
 
     public function execute(): void
     {
-        $data = $this->suit->callBeforeCreate($this->suit->getScalarValues(), $this->suit->getRelationValues());
+        $data = $this->suit->callBeforeCreate($this->suit->getScalarSnapshot(), $this->suit->getRelationValues());
         $metadata = $this->suit->getMetadata();
 
         $response = $metadata->getClient()->create($metadata->getUrlForCreate(), $data);
@@ -20,7 +20,7 @@ class Create implements ManipulationCommandInterface
         $this->suit->callAfterCreate($response);
     }
 
-    public function getSuit(): EntitySuit
+    public function getSuit(): SuitedUpEntity
     {
         return $this->suit;
     }

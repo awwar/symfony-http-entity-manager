@@ -1,12 +1,12 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\Http\EntityManipulations;
+namespace Awwar\SymfonyHttpEntityManager\Service\EntityManipulations;
 
-use Awwar\SymfonyHttpEntityManager\Service\Http\EntitySuit;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\SuitedUpEntity;
 
 class Delete implements ManipulationCommandInterface
 {
-    public function __construct(private EntitySuit $suit)
+    public function __construct(private SuitedUpEntity $suit)
     {
     }
 
@@ -16,7 +16,7 @@ class Delete implements ManipulationCommandInterface
         $metadata->getClient()->delete($metadata->getUrlForDelete($this->suit->getId()));
     }
 
-    public function getSuit(): EntitySuit
+    public function getSuit(): SuitedUpEntity
     {
         return $this->suit;
     }

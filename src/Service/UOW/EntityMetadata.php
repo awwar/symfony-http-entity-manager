@@ -1,27 +1,12 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service;
+namespace Awwar\SymfonyHttpEntityManager\Service\UOW;
 
+use Awwar\SymfonyHttpEntityManager\Service\Annotation;
+use Awwar\SymfonyHttpEntityManager\Service\Http\HttpRepositoryInterface;
 use Awwar\SymfonyHttpEntityManager\Service\ProxyGenerator\Generator;
 use Closure;
 use Exception;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\CreateLayout;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\DefaultValue;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\EmptyValue;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\EntityId;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\FieldMap;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\FilterOneQuery;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\FilterQuery;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\GetOneQuery;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\HttpEntity;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\ListDetermination;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMap;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMapper;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\UpdateLayout;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\UpdateMethod;
-use Awwar\SymfonyHttpEntityManager\Service\Http\Client;
-use Awwar\SymfonyHttpEntityManager\Service\Http\ClientInterface;
-use Awwar\SymfonyHttpEntityManager\Service\Http\HttpRepositoryInterface;
 use ReflectionClass;
 use ReflectionException;
 
@@ -46,7 +31,9 @@ class EntityMetadata
 
     private array $filedMap = [];
 
-    private array $relationsMap = [];
+    private array $relationsMapping = [];
+
+    private array $scalarProperties = [];
 
     private Closure $relationMapper;
 
@@ -60,16 +47,18 @@ class EntityMetadata
 
     private array $filterQuery = [];
 
-    private array|string $getOneQuery = [];
+    private array $getOneQuery = [];
 
-    private array|string $filterOneQuery = [];
+    private array $filterOneQuery = [];
 
     /**
+     * @param class-string<object> $className
+     * @param array $annotations
      * @throws ReflectionException
      */
     public function __construct(string $className, array $annotations)
     {
-        $id = $annotations[EntityId::class][0]['targetName'];
+        $id = $annotations[Annotation\EntityId::class][0]['targetName'];
 
         if ($id === null) {
             throw new Exception("The EntityId annotation must be set on http entity!");
@@ -77,13 +66,13 @@ class EntityMetadata
 
         $this->idProperty = $id;
 
-        $this->useDiffOnUpdate = (bool) $annotations[UpdateMethod::class][0]['data']['use_diff'];
+        $this->useDiffOnUpdate = (bool) $annotations[Annotation\UpdateMethod::class][0]['data']['use_diff'];
 
-        $this->filterQuery = $annotations[FilterQuery::class][0]['data'];
+        $this->filterQuery = (array) $annotations[Annotation\FilterQuery::class][0]['data'];
 
-        $this->getOneQuery = $annotations[GetOneQuery::class][0]['data'];
+        $this->getOneQuery = (array) $annotations[Annotation\GetOneQuery::class][0]['data'];
 
-        $this->filterOneQuery = $annotations[FilterOneQuery::class][0]['data'];
+        $this->filterOneQuery = (array) $annotations[Annotation\FilterOneQuery::class][0]['data'];
 
         $proxyClass = Generator::PROXY_NAMESPACE . "{$className}Proxy";
 
@@ -94,10 +83,10 @@ class EntityMetadata
 
         $this->emptyInstance = (new ReflectionClass($className))->newInstanceWithoutConstructor();
 
-        $metadata = $annotations[HttpEntity::class][0]['data'];
+        $metadata = $annotations[Annotation\HttpEntity::class][0]['data'];
         $this->name = $metadata['name'];
 
-        $updateMethod = $annotations[UpdateMethod::class][0]['data']['name'];
+        $updateMethod = $annotations[Annotation\UpdateMethod::class][0]['data']['name'];
         $this->client = new Client($metadata['client'], $updateMethod, $this->name);
         $this->repository = $metadata['repository'];
         $this->getOnePattern = (string) $metadata['one'];
@@ -106,7 +95,7 @@ class EntityMetadata
         $this->updatePattern = (string) $metadata['update'];
         $this->deletePattern = (string) $metadata['delete'];
 
-        $mappers = $annotations[FieldMap::class];
+        $mappers = $annotations[Annotation\FieldMap::class];
 
         foreach ($mappers as $map) {
             $filed = $map['targetName'];
@@ -118,9 +107,10 @@ class EntityMetadata
                 $this->filedMap[$condition][$filed] = $path;
             }
             $this->properties[] = $filed;
+            $this->scalarProperties[] = $filed;
         }
 
-        $defaults = $annotations[DefaultValue::class];
+        $defaults = $annotations[Annotation\DefaultValue::class];
 
         foreach ($defaults as $default) {
             $filed = $default['targetName'];
@@ -129,14 +119,14 @@ class EntityMetadata
             $this->defaultMap[$filed] = $value;
         }
 
-        $relations = $annotations[RelationMap::class];
+        $relations = $annotations[Annotation\RelationMap::class];
 
         foreach ($relations as $relation) {
             if (!$filed = $relation['targetName']) {
                 continue;
             }
             $this->properties[] = $filed;
-            $this->relationsMap[$filed] = $relation['data'];
+            $this->relationsMapping[$filed] = RelationMapping::create($relation['data']);
         }
 
         $this->relationMapper = function (...$payload) {
@@ -157,25 +147,25 @@ class EntityMetadata
             }
         };
 
-        if ($methodName = $annotations[RelationMapper::class][0]['targetName']) {
+        if ($methodName = $annotations[Annotation\RelationMapper::class][0]['targetName']) {
             $this->relationMapper = (function (...$payload) use ($methodName) {
                 return $this->{$methodName}(...$payload);
             })->bindTo($this->emptyInstance, $this->emptyInstance);
         }
 
-        if ($methodName = $annotations[CreateLayout::class][0]['targetName']) {
+        if ($methodName = $annotations[Annotation\CreateLayout::class][0]['targetName']) {
             $this->createLayout = (function (...$payload) use ($methodName) {
                 return $this->{$methodName}(...$payload);
             })->bindTo($this->emptyInstance, $this->emptyInstance);
         }
 
-        if ($methodName = $annotations[UpdateLayout::class][0]['targetName']) {
+        if ($methodName = $annotations[Annotation\UpdateLayout::class][0]['targetName']) {
             $this->updateLayout = (function (...$payload) use ($methodName) {
                 return $this->{$methodName}(...$payload);
             })->bindTo($this->emptyInstance, $this->emptyInstance);
         }
 
-        if ($methodName = $annotations[ListDetermination::class][0]['targetName']) {
+        if ($methodName = $annotations[Annotation\ListDetermination::class][0]['targetName']) {
             $this->listDetermination = (function (...$payload) use ($methodName) {
                 return $this->{$methodName}(...$payload);
             })->bindTo($this->emptyInstance, $this->emptyInstance);
@@ -249,7 +239,11 @@ class EntityMetadata
 
     public function getDefaultValue(string $property): mixed
     {
-        return isset($this->defaultMap[$property]) ? $this->defaultMap[$property] : EmptyValue::class;
+        if (array_key_exists($property, $this->defaultMap) === false) {
+            return Annotation\EmptyValue::class;
+        }
+
+        return $this->defaultMap[$property];
     }
 
     public function getProperties(): array
@@ -257,34 +251,44 @@ class EntityMetadata
         return $this->properties;
     }
 
-    public function getFilterQuery(): mixed
+    public function getScalarProperties(): array
+    {
+        return $this->scalarProperties;
+    }
+
+    /**
+     * @return RelationMapping[]
+     */
+    public function getRelationsMapping(): array
+    {
+        return $this->relationsMapping;
+    }
+
+    public function getFilterQuery(): array
     {
         return $this->filterQuery;
     }
 
-    public function getGetOneQuery(): mixed
+    public function getGetOneQuery(): array
     {
         return $this->getOneQuery;
     }
 
-    public function getFilterOneQuery(): mixed
+    public function getFilterOneQuery(): array
     {
         return $this->filterOneQuery;
     }
 
-    public function getRelationsMap(): array
-    {
-        return $this->relationsMap;
-    }
-
     public function getRelationsMapper(): callable
     {
-        return $this->relationMapper->bindTo($this->emptyInstance, $this->emptyInstance);
+        return $this->relationMapper->bindTo($this->emptyInstance, $this->emptyInstance)
+            ?? throw new \RuntimeException("Unable to bind relationMapper");
     }
 
     public function getListDetermination(): callable
     {
-        return $this->listDetermination->bindTo($this->emptyInstance, $this->emptyInstance);
+        return $this->listDetermination->bindTo($this->emptyInstance, $this->emptyInstance)
+            ?? throw new \RuntimeException("Unable to bind listDetermination");
     }
 
     public function getEmptyInstance(): object

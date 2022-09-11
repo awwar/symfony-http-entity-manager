@@ -8,8 +8,6 @@ interface HttpEntityManagerInterface
 {
     public function find(string $className, mixed $id, array $criteria = []): object;
 
-    public function filter(string $className, array $criteria, bool $isFilterOne = false): Generator;
-
     public function persist(object $object): void;
 
     public function remove(object $object): void;
@@ -26,7 +24,12 @@ interface HttpEntityManagerInterface
 
     public function getRepository(string $className): HttpRepositoryInterface;
 
-    public function iterate(string $className, array $options, ?string $url = null): Generator;
+    public function iterate(
+        string $className,
+        array $criteria,
+        ?string $url = null,
+        bool $isFilterOne = false
+    ): Generator;
 
     public function contains(object $object): bool;
 }

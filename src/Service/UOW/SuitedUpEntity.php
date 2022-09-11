@@ -1,20 +1,18 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\Http;
+namespace Awwar\SymfonyHttpEntityManager\Service\UOW;
 
 use Adbar\Dot;
+use Awwar\SymfonyHttpEntityManager\Service\Annotation\EmptyValue;
+use Awwar\SymfonyHttpEntityManager\Service\Http\Collection\GeneralCollection;
+use Awwar\SymfonyHttpEntityManager\Service\Http\EntityCreatorInterface;
 use Closure;
 use Exception;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\EmptyValue;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMap;
-use Awwar\SymfonyHttpEntityManager\Service\EntityMetadata;
 
-use function DeepCopy\deep_copy;
-
-class EntitySuit
+class SuitedUpEntity
 {
     private bool $isDeleted = false;
-    private ?object $copy = null;
+    private array|null $copy = null;
 
     private function __construct(
         private object $original,
@@ -23,15 +21,6 @@ class EntitySuit
     }
 
     public static function create(object $original, EntityMetadata $entityMetadata): self
-    {
-        $suit = self::createDirty($original, $entityMetadata);
-
-        $suit->startWatch();
-
-        return $suit;
-    }
-
-    public static function createDirty(object $original, EntityMetadata $entityMetadata): self
     {
         return new self($original, $entityMetadata);
     }
@@ -53,7 +42,10 @@ class EntitySuit
 
     public function startWatch(): void
     {
-        $this->copy = deep_copy($this->original);
+        $this->copy = [
+            'properties' => $this->getScalarSnapshot(),
+            'relations'  => $this->getRelationSnapshot(),
+        ];
     }
 
     public function getId(): ?string
@@ -68,11 +60,6 @@ class EntitySuit
         $this->setValue($this->original, $property, $id);
     }
 
-    public function isChanged(array $dataChanges, array $relationChanges): bool
-    {
-        return false === empty($dataChanges) || false === empty($relationChanges);
-    }
-
     public function delete(): void
     {
         $this->isDeleted = true;
@@ -83,50 +70,27 @@ class EntitySuit
         return $this->isDeleted;
     }
 
-    public function getEntityChanges(): array
+    public function getScalarChanges(): array
     {
         if ($this->copy === null) {
             throw new Exception("Got suit without copy!");
         }
 
-        $properties = $this->entityMetadata->getProperties();
-        $relations = $this->entityMetadata->getRelationsMap();
+        $actual = $this->getScalarSnapshot();
+        $copy = $this->copy['properties'];
+
+        $properties = $this->entityMetadata->getScalarProperties();
 
         $changes = [];
 
         foreach ($properties as $property) {
-            if (
-                isset($relations[$property])
-                || $this->issetProperty($this->original, $property) === false
-                || $this->issetProperty($this->copy, $property) === false
-            ) {
-                continue;
+            // ToDo: покрыть тестами возможные кейсы
+            $actualValue = $actual[$property] ?? null;
+            $copyValue = $copy[$property] ?? null;
+
+            if ($actualValue !== $copyValue) {
+                $changes[$property] = $actualValue;
             }
-
-            $left = $this->getValue($this->original, $property);
-            $right = $this->getValue($this->copy, $property);
-
-            if ($left !== $right) {
-                $changes[$property] = $left;
-            }
-        }
-
-        return $changes;
-    }
-
-    public function getScalarValues(): array
-    {
-        $properties = $this->entityMetadata->getProperties();
-        $relations = $this->entityMetadata->getRelationsMap();
-
-        $changes = [];
-
-        foreach ($properties as $property) {
-            if (isset($relations[$property]) || $property === $this->entityMetadata->getIdProperty()) {
-                continue;
-            }
-
-            $changes[$property] = $this->getValue($this->original, $property);
         }
 
         return $changes;
@@ -138,72 +102,110 @@ class EntitySuit
             throw new Exception("Got suit without copy!");
         }
 
-        $relations = $this->entityMetadata->getRelationsMap();
+        $relations = $this->entityMetadata->getRelationsMapping();
 
         $changes = [];
 
-        foreach ($relations as $property => $data) {
-            $copy = $this->getRelationValue($this->copy, $property, $data);
-            $original = $this->getRelationValue($this->original, $property, $data);
+        foreach ($relations as $property => $mapping) {
+            $copy = $this->copy['relations'][$property] ?? $mapping->getDefault();
+            $original = $this->getRelationValue($this->original, $property, $mapping);
 
-            $changes [$data['name']] = ['original' => $original, 'copy' => $copy];
+            $changes [$mapping->getName()] = [
+                'original' => $original,
+                'copy'     => $copy,
+                'iterable' => $mapping->isCollection(),
+            ];
         }
 
-        $originalBatch = [];
-        $copyBatch = [];
         $relationChanges = [];
+        $relationDeleted = [];
         foreach ($changes as $name => $value) {
+            $isIterable = $value['iterable'];
             $original = $value['original'];
             $copy = $value['copy'];
-            if (is_iterable($original) || is_iterable($copy)) {
+            if ($isIterable && is_iterable($original)) {
+                //ToDo: тут только на добавление, нужно добавить на удаление
                 foreach ($original as $originalEntity) {
                     $key = $this->getEntityIsNew($originalEntity)
-                        ? $this->getEntitySpl($originalEntity)
+                        ? $this->getEntitySplId($originalEntity)
                         : $this->getEntityUniqueId($originalEntity);
-                    $originalBatch[$key] = $originalEntity;
-                }
-                foreach ($copy as $copyEntity) {
-                    $copyBatch[$this->getEntityUniqueId($copyEntity)] = $copyEntity;
-                }
-
-                $diff = array_diff_key($originalBatch, $copyBatch);
-
-                if (false === empty($diff)) {
-                    $relationChanges[$name] = $diff;
-                }
-            } else {
-                if (is_object($original) && is_object($copy)) {
-                    if ($this->getEntityUniqueId($original) === $this->getEntityUniqueId($copy)) {
-                        continue;
+                    if (false === in_array($key, $copy)) {
+                        // added
+                        $relationChanges[$name][$key] = $originalEntity;
                     }
                 }
+            } else {
+                if ($original !== null) {
+                    $key = $this->getEntityUniqueId($original);
 
-                if (!is_object($original) && !is_object($copy)) {
-                    continue;
+                    if ($key === $copy) {
+                        continue;
+                    }
+
+                    $relationChanges[$name] = $original;
+                } elseif ($copy !== null) {
+                    $relationDeleted[$name] = true;
                 }
-
-                $relationChanges[$name] = $original;
             }
         }
 
         return $relationChanges;
     }
 
+    public function getScalarSnapshot(): array
+    {
+        $properties = $this->entityMetadata->getScalarProperties();
+
+        $snapshot = [];
+
+        foreach ($properties as $property) {
+            if ($property === $this->entityMetadata->getIdProperty()) {
+                continue;
+            }
+
+            $snapshot[$property] = $this->getValue($this->original, $property);
+        }
+
+        return $snapshot;
+    }
+
+    public function getRelationSnapshot(): array
+    {
+        $snapshot = [];
+
+        $relations = $this->entityMetadata->getRelationsMapping();
+
+        foreach ($relations as $property => $mapping) {
+            if (false === $this->issetProperty($this->original, $property)) {
+                $snapshot[$property] = $mapping->getDefault();
+
+                continue;
+            }
+            $relation = $this->getRelationValue($this->original, $property, $mapping);
+
+            if (is_iterable($relation) && $mapping->isCollection()) {
+                foreach ($relation as $subRelation) {
+                    $snapshot[$property][] = $this->getEntityUniqueId($subRelation);
+                }
+            } else {
+                $snapshot[$property] = $relation === null ? null : $this->getEntityUniqueId($relation);
+            }
+        }
+
+        return $snapshot;
+    }
+
     public function getRelationValues(): array
     {
-        if ($this->copy === null) {
-            throw new Exception("Got suit without copy!");
+        $relations = $this->entityMetadata->getRelationsMapping();
+
+        $snapshot = [];
+
+        foreach ($relations as $property => $mapping) {
+            $snapshot[$mapping->getName()] = $this->getRelationValue($this->original, $property, $mapping);
         }
 
-        $relations = $this->entityMetadata->getRelationsMap();
-
-        $changes = [];
-
-        foreach ($relations as $property => $data) {
-            $changes [$data['name']] = $this->getRelationValue($this->original, $property, $data);
-        }
-
-        return $changes;
+        return $snapshot;
     }
 
     public function isNew(): bool
@@ -211,9 +213,9 @@ class EntitySuit
         return $this->getEntityIsNew($this->original);
     }
 
-    public function getSPL(): string
+    public function getSPLId(): string
     {
-        return $this->getEntitySpl($this->original);
+        return $this->getEntitySplId($this->original);
     }
 
     public function getUniqueId(): string
@@ -230,25 +232,27 @@ class EntitySuit
         $this->setId($this->getByDot($dot, $map[$idProperty], $idProperty));
     }
 
-    public function callAfterRead(array $data, RelationMapper $relationMapper): void
+    public function callAfterRead(array $data, EntityCreatorInterface $creator): void
     {
         $map = $this->entityMetadata->getFieldMap('afterRead');
 
-        $dot = new Dot($data);
-        foreach ($map as $field => $path) {
-            $this->setValue($this->original, $field, $this->getByDot($dot, $path, $field));
-        }
+        $this->mapScalarData($map, $data);
 
-        $mapper = $this->entityMetadata->getRelationsMapper();
-        $relations = $this->entityMetadata->getRelationsMap();
+        $this->mapNestedRelation($data, $creator);
+    }
 
-        foreach ($relations as $field => $payload) {
-            $mappedData = call_user_func($mapper, $data, $payload['name']);
+    public function callAfterCreate(array $data): void
+    {
+        $map = $this->entityMetadata->getFieldMap('afterCreate');
 
-            $value = $relationMapper->map($mappedData, $payload);
+        $this->mapScalarData($map, $data);
+    }
 
-            $this->setValue($this->original, $field, $value);
-        }
+    public function callAfterUpdate(array $data): void
+    {
+        $map = $this->entityMetadata->getFieldMap('afterUpdate');
+
+        $this->mapScalarData($map, $data);
     }
 
     public function callBeforeCreate(array $entityData, array $relationData): array
@@ -276,16 +280,6 @@ class EntitySuit
         }
 
         return $dot->all();
-    }
-
-    public function callAfterCreate(array $data): void
-    {
-        $map = $this->entityMetadata->getFieldMap('afterCreate');
-
-        $dot = new Dot($data);
-        foreach ($map as $field => $path) {
-            $this->setValue($this->original, $field, $this->getByDot($dot, $path, $field));
-        }
     }
 
     public function callBeforeUpdate(
@@ -324,16 +318,6 @@ class EntitySuit
         }
 
         return $dot->all();
-    }
-
-    public function callAfterUpdate(array $data): void
-    {
-        $map = $this->entityMetadata->getFieldMap('afterUpdate');
-
-        $dot = new Dot($data);
-        foreach ($map as $field => $path) {
-            $this->setValue($this->original, $field, $this->getByDot($dot, $path, $field));
-        }
     }
 
     public function proxy(Closure $managerCallback, mixed $id = null): void
@@ -375,11 +359,11 @@ class EntitySuit
         return $this->getValue($this->original, '__initialized');
     }
 
-    private function getRelationValue(object $object, string $property, array $relationData): mixed
+    private function getRelationValue(object $object, string $property, RelationMapping $mapping): mixed
     {
         $data = $this->getValue($object, $property);
 
-        return $data ?? ($relationData['expects'] === RelationMap::ONE ? null : []);
+        return $data ?? $mapping->getDefault();
     }
 
     private function getEntityId(object $entity): ?string
@@ -411,9 +395,52 @@ class EntitySuit
         return sha1($this->getEntityId($entity) . get_class($entity));
     }
 
-    private function getEntitySpl(object $entity): int
+    private function getEntitySplId(object $entity): string
     {
-        return spl_object_id($entity);
+        return (string) spl_object_id($entity);
+    }
+
+    private function mapScalarData(array $map, array $data): void
+    {
+        $dot = new Dot($data);
+
+        foreach ($map as $field => $path) {
+            $this->setValue($this->original, $field, $this->getByDot($dot, $path, $field));
+        }
+    }
+
+    private function mapNestedRelation(array $data, EntityCreatorInterface $creator): void
+    {
+        $relationsMapper = $this->entityMetadata->getRelationsMapper();
+        $relations = $this->entityMetadata->getRelationsMapping();
+
+        foreach ($relations as $field => $mapping) {
+            $mappedData = call_user_func($relationsMapper, $data, $mapping->getName());
+
+            $value = $this->createNestedRelation($mapping, $mappedData, $creator);
+
+            $this->setValue($this->original, $field, $value);
+        }
+    }
+
+    private function createNestedRelation(
+        RelationMapping $mapping,
+        iterable $relationIterator,
+        EntityCreatorInterface $creator
+    ): ?object {
+        $result = [];
+
+        foreach ($relationIterator as $dataContainer) {
+            $result[] = $creator->createEntityWithData($mapping->getClass(), $dataContainer);
+
+            if ($mapping->isCollection() === false) {
+                break;
+            }
+        }
+
+        $result = array_filter($result);
+
+        return $mapping->isCollection() ? new GeneralCollection($result) : array_pop($result);
     }
 
     private function setValue(object $object, string $property, mixed $value): void
