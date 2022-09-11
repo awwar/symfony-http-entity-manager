@@ -2,12 +2,12 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service\EntityManipulations;
 
-use Awwar\SymfonyHttpEntityManager\Service\UOW\EntitySuit;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\SuitedUpEntity;
 
 class Update implements ManipulationCommandInterface
 {
     public function __construct(
-        private EntitySuit $suit,
+        private SuitedUpEntity $suit,
         private array $entityChanges = [],
         private array $relationChanges = [],
     ) {
@@ -28,7 +28,7 @@ class Update implements ManipulationCommandInterface
         $this->suit->callAfterUpdate($result);
     }
 
-    public function getSuit(): EntitySuit
+    public function getSuit(): SuitedUpEntity
     {
         return $this->suit;
     }

@@ -6,19 +6,19 @@ use Awwar\SymfonyHttpEntityManager\Service\EntityManipulations\ManipulationComma
 
 interface HttpUnitOfWorkInterface
 {
-    public function commit(EntitySuit $suit, bool $withWatch = true): void;
+    public function commit(SuitedUpEntity $suit, bool $withWatch = true): void;
 
-    public function delete(EntitySuit $suit): void;
+    public function delete(SuitedUpEntity $suit): void;
 
-    public function remove(EntitySuit $suit): void;
+    public function remove(SuitedUpEntity $suit): void;
 
-    public function upgrade(EntitySuit $suit): void;
+    public function upgrade(SuitedUpEntity $suit): void;
 
     public function clear(string $objectName = null): void;
 
-    public function getFromIdentity(EntitySuit $suit): EntitySuit;
+    public function getFromIdentity(SuitedUpEntity $suit): SuitedUpEntity;
 
-    public function hasSuit(EntitySuit $suit): bool;
+    public function hasSuit(SuitedUpEntity $suit): bool;
 
     public function flush(): void;
 }

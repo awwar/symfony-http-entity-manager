@@ -2,11 +2,11 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service\EntityManipulations;
 
-use Awwar\SymfonyHttpEntityManager\Service\UOW\EntitySuit;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\SuitedUpEntity;
 
 class Create implements ManipulationCommandInterface
 {
-    public function __construct(private EntitySuit $suit)
+    public function __construct(private SuitedUpEntity $suit)
     {
     }
 
@@ -20,7 +20,7 @@ class Create implements ManipulationCommandInterface
         $this->suit->callAfterCreate($response);
     }
 
-    public function getSuit(): EntitySuit
+    public function getSuit(): SuitedUpEntity
     {
         return $this->suit;
     }

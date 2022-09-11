@@ -40,7 +40,7 @@ class HttpEntitiesDiscovery
     private function discoverHttpEntities(string $namespace, string $path): void
     {
         $finder = new Finder();
-        $finder->files()->in($path);
+        $finder->files()->name('/\.php$/')->in($path);
 
         /** @var SplFileInfo $file */
         foreach ($finder as $file) {

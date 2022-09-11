@@ -19,12 +19,12 @@ class HttpRepository implements HttpRepositoryInterface
 
     public function filter(array $filter = []): Generator
     {
-        return $this->httpEntityManager->filter($this->entityClass, $filter);
+        return $this->httpEntityManager->iterate($this->entityClass, $filter);
     }
 
     public function filterOne(array $filter = []): object
     {
-        return $this->httpEntityManager->filter($this->entityClass, $filter, isFilterOne: true)->current();
+        return $this->httpEntityManager->iterate($this->entityClass, $filter, isFilterOne: true)->current();
     }
 
     public function add(object $object, bool $flush = false): void

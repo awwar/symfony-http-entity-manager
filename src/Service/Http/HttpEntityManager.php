@@ -7,9 +7,8 @@ use Awwar\SymfonyHttpEntityManager\Service\Http\ListIterator\Data;
 use Awwar\SymfonyHttpEntityManager\Service\Http\Resource\FullData;
 use Awwar\SymfonyHttpEntityManager\Service\Http\Resource\NoData;
 use Awwar\SymfonyHttpEntityManager\Service\Http\Resource\Reference;
-use Awwar\SymfonyHttpEntityManager\Service\UOW\EntitySuitFactory;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\EntityAtelier;
 use Awwar\SymfonyHttpEntityManager\Service\UOW\HttpUnitOfWorkInterface;
-use Awwar\SymfonyHttpEntityManager\Service\UOW\MetadataRegistryInterface;
 use Generator;
 use LogicException;
 
@@ -17,14 +16,13 @@ class HttpEntityManager implements HttpEntityManagerInterface, EntityCreatorInte
 {
     public function __construct(
         private HttpUnitOfWorkInterface $unitOfWork,
-        private MetadataRegistryInterface $metadataRegistry,
-        private EntitySuitFactory $entitySuitFactory
+        private EntityAtelier $entityAtelier
     ) {
     }
 
     public function find(string $className, mixed $id, array $criteria = []): object
     {
-        $suit = $this->entitySuitFactory->createFromClass($className);
+        $suit = $this->entityAtelier->suitUpClass($className);
         $suit->setId($id);
 
         if (false === $this->unitOfWork->hasSuit($suit)) {
@@ -42,35 +40,9 @@ class HttpEntityManager implements HttpEntityManagerInterface, EntityCreatorInte
         return $this->unitOfWork->getFromIdentity($suit)->getOriginal();
     }
 
-    public function filter(string $className, array $criteria, bool $isFilterOne = false): Generator
-    {
-        $metadata = $this->metadataRegistry->get($className);
-
-        $options = array_merge($isFilterOne ? $metadata->getFilterOneQuery() : $metadata->getFilterQuery(), $criteria);
-
-        $entityIterator = $this->iterate($className, $options);
-        $firstIteration = true;
-
-        do {
-            $entity = $entityIterator->current();
-
-            if ($entity === null) {
-                if ($firstIteration === true && $isFilterOne === true) {
-                    throw new NotFoundException(entity: $metadata->getName());
-                }
-                $firstIteration = false;
-                break;
-            }
-
-            yield $entity;
-
-            $entityIterator->next();
-        } while (true);
-    }
-
     public function persist(object $object): void
     {
-        $suit = $this->entitySuitFactory->createDirty($object);
+        $suit = $this->entityAtelier->suitUpEntity($object);
 
         $this->unitOfWork->commit($suit);
     }
@@ -82,7 +54,7 @@ class HttpEntityManager implements HttpEntityManagerInterface, EntityCreatorInte
 
     public function remove(object $object): void
     {
-        $suit = $this->entitySuitFactory->createDirty($object);
+        $suit = $this->entityAtelier->suitUpEntity($object);
 
         $this->unitOfWork->delete($suit);
     }
@@ -94,14 +66,14 @@ class HttpEntityManager implements HttpEntityManagerInterface, EntityCreatorInte
 
     public function detach(object $object): void
     {
-        $suit = $this->entitySuitFactory->createDirty($object);
+        $suit = $this->entityAtelier->suitUpEntity($object);
 
         $this->unitOfWork->remove($suit);
     }
 
     public function refresh(object $object): void
     {
-        $suit = $this->entitySuitFactory->createDirty($object);
+        $suit = $this->entityAtelier->suitUpEntity($object);
 
         $suit = $this->unitOfWork->getFromIdentity($suit);
         $metadata = $suit->getMetadata();
@@ -116,12 +88,14 @@ class HttpEntityManager implements HttpEntityManagerInterface, EntityCreatorInte
 
     public function getRepository(string $className): HttpRepositoryInterface
     {
-        return $this->metadataRegistry->get($className)->getRepository() ?? new HttpRepository($this, $className);
+        $suit = $this->entityAtelier->suitUpClass($className);
+
+        return $suit->getMetadata()->getRepository() ?? new HttpRepository($this, $className);
     }
 
     public function contains(object $object): bool
     {
-        $suit = $this->entitySuitFactory->createDirty($object);
+        $suit = $this->entityAtelier->suitUpEntity($object);
 
         return $this->unitOfWork->hasSuit($suit);
     }
@@ -131,15 +105,25 @@ class HttpEntityManager implements HttpEntityManagerInterface, EntityCreatorInte
         throw new \RuntimeException('Merge is not implemented!');
     }
 
-    public function iterate(string $className, array $options, ?string $url = null): Generator
-    {
-        $metadata = $this->metadataRegistry->get($className);
+    public function iterate(
+        string $className,
+        array $criteria,
+        ?string $url = null,
+        bool $isFilterOne = false
+    ): Generator {
+        $suit = $this->entityAtelier->suitUpClass($className);
+        $metadata = $suit->getMetadata();
 
-        $data = $metadata->getClient()->get($url === null ? $metadata->getUrlForList() : $url, $options);
+        $criteria = array_merge($isFilterOne ? $metadata->getFilterOneQuery() : $metadata->getFilterQuery(), $criteria);
+
+        $data = $metadata->getClient()->get($url === null ? $metadata->getUrlForList() : $url, $criteria);
 
         $iterator = $metadata->getListDetermination()($data);
 
         $nextUrl = null;
+
+        $firstIteration = true;
+
         do {
             $signal = $iterator->current();
 
@@ -149,16 +133,20 @@ class HttpEntityManager implements HttpEntityManagerInterface, EntityCreatorInte
 
             if ($signal === null) {
                 if ($nextUrl === null) {
+                    if ($firstIteration === true && $isFilterOne === true) {
+                        throw new NotFoundException(entity: $metadata->getName());
+                    }
                     break;
                 }
-                $data = $metadata->getClient()->get($nextUrl, []);
+                $data = $metadata->getClient()->get($nextUrl, $criteria);
 
                 $iterator = $metadata->getListDetermination()($data);
                 $nextUrl = null;
                 continue;
             }
+            $firstIteration = false;
 
-            $newSuit = $this->entitySuitFactory->createFromClass($className);
+            $newSuit = $this->entityAtelier->suitUpClass($className);
             $newSuit->callAfterRead($signal->getData(), $this);
 
             $this->unitOfWork->commit($newSuit);
@@ -171,7 +159,7 @@ class HttpEntityManager implements HttpEntityManagerInterface, EntityCreatorInte
 
     public function createEntityWithData(string $className, mixed $data): ?object
     {
-        $suit = $this->entitySuitFactory->createFromClass($className);
+        $suit = $this->entityAtelier->suitUpClass($className);
 
         if ($data instanceof FullData) {
             $suit->setIdAfterRead($data->getData());

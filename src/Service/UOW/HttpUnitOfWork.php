@@ -11,13 +11,13 @@ use Exception;
 class HttpUnitOfWork implements HttpUnitOfWorkInterface
 {
     /**
-     * @var EntitySuit[]
+     * @var SuitedUpEntity[]
      */
     private array $identityMap = [];
 
     private array $keyToSplIdMap = [];
 
-    public function commit(EntitySuit $suit, bool $withWatch = true): void
+    public function commit(SuitedUpEntity $suit, bool $withWatch = true): void
     {
         if ($this->hasSuit($suit)) {
             return;
@@ -36,7 +36,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
         }
     }
 
-    public function upgrade(EntitySuit $suit): void
+    public function upgrade(SuitedUpEntity $suit): void
     {
         if ($suit->isNew()) {
             throw new Exception("Unable to upgrade new entity");
@@ -57,7 +57,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
         }
     }
 
-    public function delete(EntitySuit $suit): void
+    public function delete(SuitedUpEntity $suit): void
     {
         if (false === $this->hasSuit($suit)) {
             return;
@@ -70,7 +70,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
         $newSuit->delete();
     }
 
-    public function remove(EntitySuit $suit): void
+    public function remove(SuitedUpEntity $suit): void
     {
         if (false === $this->hasSuit($suit)) {
             return;
@@ -147,7 +147,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
         }
     }
 
-    public function getFromIdentity(EntitySuit $suit): EntitySuit
+    public function getFromIdentity(SuitedUpEntity $suit): SuitedUpEntity
     {
         if (false === $this->hasSuit($suit)) {
             throw IdentityNotFoundException::create($suit->getClass(), $suit->getId());
@@ -158,7 +158,7 @@ class HttpUnitOfWork implements HttpUnitOfWorkInterface
         return $this->identityMap[$splId];
     }
 
-    public function hasSuit(EntitySuit $suit): bool
+    public function hasSuit(SuitedUpEntity $suit): bool
     {
         return $suit->isNew()
             ? isset($this->identityMap[$suit->getSPLId()])

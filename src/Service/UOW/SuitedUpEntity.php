@@ -9,7 +9,7 @@ use Awwar\SymfonyHttpEntityManager\Service\Http\EntityCreatorInterface;
 use Closure;
 use Exception;
 
-class EntitySuit
+class SuitedUpEntity
 {
     private bool $isDeleted = false;
     private array|null $copy = null;
@@ -21,15 +21,6 @@ class EntitySuit
     }
 
     public static function create(object $original, EntityMetadata $entityMetadata): self
-    {
-        $suit = self::createDirty($original, $entityMetadata);
-
-        $suit->startWatch();
-
-        return $suit;
-    }
-
-    public static function createDirty(object $original, EntityMetadata $entityMetadata): self
     {
         return new self($original, $entityMetadata);
     }

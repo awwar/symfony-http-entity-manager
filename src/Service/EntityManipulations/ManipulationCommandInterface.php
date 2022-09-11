@@ -2,11 +2,11 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service\EntityManipulations;
 
-use Awwar\SymfonyHttpEntityManager\Service\UOW\EntitySuit;
+use Awwar\SymfonyHttpEntityManager\Service\UOW\SuitedUpEntity;
 
 interface ManipulationCommandInterface
 {
     public function execute(): void;
 
-    public function getSuit(): EntitySuit;
+    public function getSuit(): SuitedUpEntity;
 }
