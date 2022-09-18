@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 #### Changed
 
-* Extends FieldMap setting
+* Extends DataField setting
 * HttpEntityManager: find method can use criteria for requests
 
 ### Doc

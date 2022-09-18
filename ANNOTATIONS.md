@@ -32,7 +32,7 @@ Label of the field responsible for id
 #[EntityId]
 ```
 
-## FieldMap
+## DataField
 
 Require: <mark>YES</mark>
 
@@ -41,7 +41,7 @@ Target: `property`
 Data mapping label (not for nested entities)
 
 ```php
-#[FieldMap(all: 'data.id', preCreate: null)]
+#[DataField(all: 'data.id', preCreate: null)]
 ```
 
 Dot Notation is used to specify the path to the data from the request. That is, if after updating the entity we receive
@@ -80,7 +80,7 @@ For complex combinatorics, use the rule:
 
 `preCreate` > `pre` > `all`
 
-## RelationMap
+## RelationField
 
 Require: <mark>YES</mark>
 
@@ -89,14 +89,14 @@ Target: `property`
 Related Entity Mapping Label
 
 ```php
-#[RelationMap(Deal::class, 'deals', RelationMap::MANY)]
+#[RelationField(Deal::class, 'deals', RelationField::MANY)]
 ```
 
 `class` - FQCN of the entity your entity refers to (this should also be `HttpEntity`)
 
 `name` - the alias of the related entity
 
-`expects` - if collection then `RelationMap::MANY`. If one, then `RelationMap::ONE`
+`expects` - if collection then `RelationField::MANY`. If one, then `RelationField::ONE`
 
 ## RelationMapper
 
@@ -113,10 +113,10 @@ That is, you have a user, he has transactions
 In the user, you marked transactions with the attribute
 
 ```php
-#[RelationMap(Deal::class, 'deals', RelationMap::MANY)]
+#[RelationField(Deal::class, 'deals', RelationField::MANY)]
 ```
 
-Then the whole response will come to the mapper, and the name that you wrote in the second argument of RelationMap will
+Then the whole response will come to the mapper, and the name that you wrote in the second argument of RelationField will
 come to `$name`
 
 ```php

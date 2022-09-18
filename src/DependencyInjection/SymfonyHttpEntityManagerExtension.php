@@ -4,9 +4,21 @@ declare(strict_types=1);
 
 namespace Awwar\SymfonyHttpEntityManager\DependencyInjection;
 
+use Awwar\PhpHttpEntityManager\Http\HttpEntityManager;
+use Awwar\PhpHttpEntityManager\Http\HttpEntityManagerInterface;
+use Awwar\PhpHttpEntityManager\Http\HttpRepository;
+use Awwar\PhpHttpEntityManager\Http\HttpRepositoryInterface;
+use Awwar\PhpHttpEntityManager\UOW\Client;
+use Awwar\PhpHttpEntityManager\UOW\ClientInterface;
+use Awwar\PhpHttpEntityManager\UOW\EntityAtelier;
+use Awwar\PhpHttpEntityManager\UOW\EntityMetadata;
+use Awwar\PhpHttpEntityManager\UOW\HttpUnitOfWork;
+use Awwar\PhpHttpEntityManager\UOW\HttpUnitOfWorkInterface;
+use Awwar\PhpHttpEntityManager\UOW\MetadataRegistry;
+use Awwar\PhpHttpEntityManager\UOW\MetadataRegistryInterface;
 use Awwar\SymfonyHttpEntityManager\Service\EntityMetadataObtainer;
 use Awwar\SymfonyHttpEntityManager\Service\HttpEntitiesDiscovery;
-use Awwar\SymfonyHttpEntityManager\Service\UOW\MetadataRegistry;
+use Awwar\SymfonyHttpEntityManager\Service\MetadataRegistryFactory;
 use ReflectionClass;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -16,6 +28,15 @@ use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 class SymfonyHttpEntityManagerExtension extends Extension
 {
+    private const SERVICES = [
+        HttpEntityManagerInterface::class => HttpEntityManager::class,
+        HttpRepositoryInterface::class    => HttpRepository::class,
+        ClientInterface::class            => Client::class,
+        EntityAtelier::class              => EntityAtelier::class,
+        EntityMetadata::class             => EntityMetadata::class,
+        HttpUnitOfWorkInterface::class    => HttpUnitOfWork::class,
+    ];
+
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();
@@ -41,20 +62,27 @@ class SymfonyHttpEntityManagerExtension extends Extension
 
         $entityClasses = [];
         $metadataMap = array_map(function (ReflectionClass $reflection) use ($obtainer, &$entityClasses) {
-            $metadata = $obtainer->fromReflection($reflection);
-            $entityClasses [] = $metadata['name'];
-            return $metadata;
-        }, $discovery->getData());
+            $entityClasses [] = $reflection->getName();
 
-        $metadataRegistryService = new Definition(MetadataRegistry::class);
-        $metadataRegistryService->setArguments([$metadataMap]);
-        $metadataRegistryService->setAutoconfigured(true);
-        $metadataRegistryService->setAutowired(true);
-        $metadataRegistryService->setLazy(true);
+            return $obtainer->fromReflection($reflection);
+        }, $discovery->searchEntries());
 
-        $container->setDefinition(MetadataRegistry::class, $metadataRegistryService);
+        $metadataRegistryService = (new Definition(MetadataRegistry::class))
+            ->setFactory([MetadataRegistryFactory::class, 'create'])
+            ->setArguments([$metadataMap])
+            ->setAutoconfigured(true)
+            ->setLazy(true);
 
-        $container->setParameter('http_entity.proxy_dir', '%kernel.cache_dir%/http_doctrine/Proxies/__HTTP__');
+        $container->setDefinition(MetadataRegistryInterface::class, $metadataRegistryService);
+
+        foreach (self::SERVICES as $alias => $name) {
+            $container->setDefinition(
+                $alias,
+                (new Definition($name))->setAutoconfigured(true)->setAutowired(true)
+            );
+        }
+
+        $container->setParameter('http_entity.proxy_dir', '%kernel.cache_dir%/http_entity/Proxies/__HTTP__');
         $container->setParameter('http_entity.entity_classes', $entityClasses);
     }
 }

@@ -2,7 +2,7 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service;
 
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\HttpEntity;
+use Awwar\PhpHttpEntityManager\Annotation\HttpEntity;
 use ReflectionClass;
 use ReflectionException;
 use Symfony\Component\Finder\Finder;
@@ -23,24 +23,27 @@ class HttpEntitiesDiscovery
      * @return ReflectionClass[]
      * @throws ReflectionException
      */
-    public function getData(): array
+    public function searchEntries(): array
     {
-        if (!$this->entitiesReflections) {
-            foreach ($this->mapping as $namespace => $path) {
-                $this->discoverHttpEntities($namespace, $path);
-            }
+        $entries = [];
+
+        foreach ($this->mapping as $namespace => $path) {
+            array_push($entries, ...$this->discoverHttpEntities($namespace, $path));
         }
 
-        return $this->entitiesReflections;
+        return $entries;
     }
 
     /**
+     * @return ReflectionClass[]
      * @throws ReflectionException
      */
-    private function discoverHttpEntities(string $namespace, string $path): void
+    private function discoverHttpEntities(string $namespace, string $path): array
     {
         $finder = new Finder();
         $finder->files()->name('/\.php$/')->in($path);
+
+        $entries = [];
 
         /** @var SplFileInfo $file */
         foreach ($finder as $file) {
@@ -57,7 +60,9 @@ class HttpEntitiesDiscovery
                 continue;
             }
 
-            $this->entitiesReflections[] = $reflection;
+            $entries[] = $reflection;
         }
+
+        return $entries;
     }
 }

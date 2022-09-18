@@ -1,8 +1,8 @@
 <?php
 
-namespace Awwar\SymfonyHttpEntityManager\Service\ProxyGenerator;
+namespace Awwar\SymfonyHttpEntityManager\Service;
 
-class Generator
+class ProxyGenerator
 {
     public const PROXY_NAMESPACE = "Proxies\\__HTTP__\\";
     private string $templateName = '<?php
@@ -10,7 +10,7 @@ namespace Proxies\__HTTP__\{{classPath}};
 
 class {{class}}Proxy extends \\{{classPath}}\\{{class}}
 {
-    use \Awwar\SymfonyHttpEntityManager\Service\ProxyGenerator\ProxyTrait;
+    use \Awwar\PhpHttpEntityManager\Proxy\ProxyTrait;
 }
 ';
 

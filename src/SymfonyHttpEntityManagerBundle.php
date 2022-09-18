@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Awwar\SymfonyHttpEntityManager;
 
-use Awwar\SymfonyHttpEntityManager\Service\ProxyGenerator\Generator;
+use Awwar\SymfonyHttpEntityManager\Service\ProxyGenerator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
@@ -19,7 +19,7 @@ class SymfonyHttpEntityManagerBundle extends Bundle
     {
         parent::boot();
 
-        $generator = new Generator(
+        $generator = new ProxyGenerator(
             (string) $this->container->getParameter('http_entity.proxy_dir')
         );
 

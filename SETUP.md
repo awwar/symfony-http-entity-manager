@@ -75,8 +75,8 @@ A fairly simple entity, but it has an array of `deals` and can store `admin`
 To get started we can add 4 main annotations:
 
 - [HttpEntity](ANNOTATIONS.md#httpentity)
-- [FieldMap](ANNOTATIONS.md#fieldmap)
-- [RelationMap](ANNOTATIONS.md#relationmap)
+- [DataField](ANNOTATIONS.md#datafield)
+- [RelationField](ANNOTATIONS.md#relationfield)
 - [EntityId](ANNOTATIONS.md#entityid)
 
 As a result, we can already get the entity. All fields except relations will be mapped correctly. However, for full
@@ -91,23 +91,23 @@ performance need other [annotations](ANNOTATIONS.md)
 class Contact
 {
     #[EntityId]
-    #[FieldMap(all: 'data.id', preCreate: null)]
+    #[DataField(all: 'data.id', preCreate: null)]
     private ?string $id = null;
 
-    #[FieldMap(all: 'data.attributes.first-name')]
+    #[DataField(all: 'data.attributes.first-name')]
     private string $firstName = '';
 
-    #[FieldMap(all: 'data.attributes.sex')]
+    #[DataField(all: 'data.attributes.sex')]
     #[DefaultValue('u')]
     private string $sex;
 
-    #[FieldMap(all: 'data.attributes.email')]
+    #[DataField(all: 'data.attributes.email')]
     private string $email = '';
 
-    #[RelationMap(Deal::class, 'deals', RelationMap::MANY)]
+    #[RelationField(Deal::class, 'deals', RelationField::MANY)]
     private Collection $deals;
 
-    #[RelationMap(Admin::class, 'admin', RelationMap::ONE)]
+    #[RelationField(Admin::class, 'admin', RelationField::ONE)]
     private ?Admin $admin = null;
 
     public function __construct()

@@ -2,21 +2,11 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service;
 
+use Awwar\PhpHttpEntityManager\Annotation;
 use Closure;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\CreateLayout;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\DefaultValue;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\EntityId;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\FieldMap;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\FilterOneQuery;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\FilterQuery;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\GetOneQuery;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\HttpEntity;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\ListDetermination;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMap;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\RelationMapper;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\UpdateLayout;
-use Awwar\SymfonyHttpEntityManager\Service\Annotation\UpdateMethod;
 use ReflectionClass;
+use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class EntityMetadataObtainer
 {
@@ -25,19 +15,19 @@ class EntityMetadataObtainer
     public function __construct()
     {
         $this->expectedAttributes = [
-            HttpEntity::class        => HttpEntity::getDefault(),
-            EntityId::class          => EntityId::getDefault(),
-            CreateLayout::class      => CreateLayout::getDefault(),
-            UpdateLayout::class      => UpdateLayout::getDefault(),
-            UpdateMethod::class      => UpdateMethod::getDefault(),
-            FieldMap::class          => FieldMap::getDefault(),
-            FilterQuery::class       => FilterQuery::getDefault(),
-            FilterOneQuery::class    => FilterOneQuery::getDefault(),
-            GetOneQuery::class       => GetOneQuery::getDefault(),
-            RelationMap::class       => RelationMap::getDefault(),
-            RelationMapper::class    => RelationMapper::getDefault(),
-            ListDetermination::class => ListDetermination::getDefault(),
-            DefaultValue::class      => DefaultValue::getDefault(),
+            Annotation\HttpEntity::class        => Annotation\HttpEntity::getDefault(),
+            Annotation\EntityId::class          => Annotation\EntityId::getDefault(),
+            Annotation\CreateLayout::class      => Annotation\CreateLayout::getDefault(),
+            Annotation\UpdateLayout::class      => Annotation\UpdateLayout::getDefault(),
+            Annotation\UpdateMethod::class      => Annotation\UpdateMethod::getDefault(),
+            Annotation\DataField::class         => Annotation\DataField::getDefault(),
+            Annotation\RelationField::class     => Annotation\RelationField::getDefault(),
+            Annotation\FilterQuery::class       => Annotation\FilterQuery::getDefault(),
+            Annotation\FilterOneQuery::class    => Annotation\FilterOneQuery::getDefault(),
+            Annotation\GetOneQuery::class       => Annotation\GetOneQuery::getDefault(),
+            Annotation\RelationMapper::class    => Annotation\RelationMapper::getDefault(),
+            Annotation\ListDetermination::class => Annotation\ListDetermination::getDefault(),
+            Annotation\DefaultValue::class      => Annotation\DefaultValue::getDefault(),
         ];
     }
 
@@ -82,7 +72,18 @@ class EntityMetadataObtainer
         $result['attribute'][$class][] = [
             'target'     => $target,
             'targetName' => $targetName,
-            'data'       => $data,
+            'data'       => $this->preprocessData($data, $class),
         ];
+    }
+
+    private function preprocessData(array $data, string $attributeClass): array
+    {
+        if ($attributeClass === Annotation\HttpEntity::class) {
+            $data['client'] = new Reference($data['client'] ?? HttpClientInterface::class);
+            $repository = $data['repository'] ?? null;
+            $data['repository'] = $repository === null ? null : new Reference($repository);
+        }
+
+        return $data;
     }
 }
