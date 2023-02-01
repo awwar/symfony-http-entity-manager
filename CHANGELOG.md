@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2023-02-01
+
+### Fixed
+
+* Required `callback` parameter in DefaultValue is now optional
+
+## [1.0.2] - 2022-09-11
+
+### Refactor
+
+* Refactoring and cleanup
+
 ## [1.0.1] - 2022-09-08
 
 ### Fixed
