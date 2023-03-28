@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Awwar\SymfonyHttpEntityManager\DependencyInjection;
 
+use Awwar\PhpHttpEntityManager\Client\Client;
+use Awwar\PhpHttpEntityManager\Client\ClientInterface;
 use Awwar\PhpHttpEntityManager\Http\HttpEntityManager;
 use Awwar\PhpHttpEntityManager\Http\HttpEntityManagerInterface;
 use Awwar\PhpHttpEntityManager\Http\HttpRepository;
 use Awwar\PhpHttpEntityManager\Http\HttpRepositoryInterface;
-use Awwar\PhpHttpEntityManager\UOW\Client;
-use Awwar\PhpHttpEntityManager\UOW\ClientInterface;
+use Awwar\PhpHttpEntityManager\Metadata\EntityMetadata;
+use Awwar\PhpHttpEntityManager\Metadata\MetadataRegistry;
+use Awwar\PhpHttpEntityManager\Metadata\MetadataRegistryInterface;
 use Awwar\PhpHttpEntityManager\UOW\EntityAtelier;
-use Awwar\PhpHttpEntityManager\UOW\EntityMetadata;
 use Awwar\PhpHttpEntityManager\UOW\HttpUnitOfWork;
 use Awwar\PhpHttpEntityManager\UOW\HttpUnitOfWorkInterface;
-use Awwar\PhpHttpEntityManager\UOW\MetadataRegistry;
-use Awwar\PhpHttpEntityManager\UOW\MetadataRegistryInterface;
-use Awwar\SymfonyHttpEntityManager\Service\EntityMetadataObtainer;
+use Awwar\SymfonyHttpEntityManager\Service\EntityMetadataObtain;
 use Awwar\SymfonyHttpEntityManager\Service\HttpEntitiesDiscovery;
 use Awwar\SymfonyHttpEntityManager\Service\MetadataRegistryFactory;
 use ReflectionClass;
@@ -58,13 +58,13 @@ class SymfonyHttpEntityManagerExtension extends Extension
         }
 
         $discovery = new HttpEntitiesDiscovery($mapping);
-        $obtainer = new EntityMetadataObtainer();
+        $obtain = new EntityMetadataObtain();
 
         $entityClasses = [];
-        $metadataMap = array_map(function (ReflectionClass $reflection) use ($obtainer, &$entityClasses) {
+        $metadataMap = array_map(function (ReflectionClass $reflection) use ($obtain, &$entityClasses) {
             $entityClasses [] = $reflection->getName();
 
-            return $obtainer->fromReflection($reflection);
+            return $obtain->fromReflection($reflection);
         }, $discovery->searchEntries());
 
         $metadataRegistryService = (new Definition(MetadataRegistry::class))

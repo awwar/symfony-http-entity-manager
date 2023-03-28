@@ -2,7 +2,7 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service;
 
-use Awwar\PhpHttpEntityManager\Annotation\HttpEntity;
+use Awwar\SymfonyHttpEntityManager\Annotation\HttpEntity;
 use ReflectionClass;
 use ReflectionException;
 use Symfony\Component\Finder\Finder;

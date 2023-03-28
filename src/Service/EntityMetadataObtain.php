@@ -2,13 +2,13 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service;
 
-use Awwar\PhpHttpEntityManager\Annotation;
+use Awwar\SymfonyHttpEntityManager\Annotation;
 use Closure;
 use ReflectionClass;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class EntityMetadataObtainer
+class EntityMetadataObtain
 {
     private array $expectedAttributes;
 
