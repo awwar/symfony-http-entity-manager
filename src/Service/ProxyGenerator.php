@@ -5,14 +5,6 @@ namespace Awwar\SymfonyHttpEntityManager\Service;
 class ProxyGenerator
 {
     public const PROXY_NAMESPACE = "Proxies\\__HTTP__\\";
-    private string $templateName = '<?php
-namespace Proxies\__HTTP__\{{classPath}};
-
-class {{class}}Proxy extends \\{{classPath}}\\{{class}}
-{
-    use \Awwar\PhpHttpEntityManager\Proxy\ProxyTrait;
-}
-';
 
     public function __construct(private string $cachePath = '')
     {
@@ -35,7 +27,7 @@ class {{class}}Proxy extends \\{{classPath}}\\{{class}}
             mkdir($proxyDir, permissions: 0777, recursive: true);
         }
 
-        $content = strtr($this->templateName, ['{{classPath}}' => $classNamespace, '{{class}}' => $class]);
+        $content = strtr($this->getTemplate(), ['{{classPath}}' => $classNamespace, '{{class}}' => $class]);
 
         file_put_contents($proxyPath, $content);
         @chmod($proxyPath, 0664);
@@ -49,5 +41,11 @@ class {{class}}Proxy extends \\{{classPath}}\\{{class}}
     public function getCachePath(): string
     {
         return $this->cachePath;
+    }
+
+    private function getTemplate(): string
+    {
+        return '<?php namespace Proxies\__HTTP__\{{classPath}}{class {{class}}Proxy extends \\{{classPath}}\\{{class}}'
+            . '{use \Awwar\PhpHttpEntityManager\Proxy\ProxyTrait;}};';
     }
 }

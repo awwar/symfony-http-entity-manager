@@ -206,8 +206,8 @@ class Contact
 ## Create a repository
 
 ```php
-use Awwar\SymfonyHttpEntityManager\Service\Http\HttpEntityManagerInterface;
-use Awwar\SymfonyHttpEntityManager\Service\Http\HttpRepository;
+use Awwar\PhpHttpEntityManager\EntityManager\HttpEntityManagerInterface;
+use Awwar\PhpHttpEntityManager\Repository\HttpRepository;
 
 /**
  * @method Contact      find($id, array $criteria = [])

@@ -2,7 +2,6 @@
 
 namespace Awwar\SymfonyHttpEntityManager\Service;
 
-use Awwar\PhpHttpEntityManager\Client\Client;
 use Awwar\PhpHttpEntityManager\Metadata\CallbacksSettings;
 use Awwar\PhpHttpEntityManager\Metadata\EntityMetadata;
 use Awwar\PhpHttpEntityManager\Metadata\FieldsSettings;

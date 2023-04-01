@@ -4,12 +4,16 @@
   "type": "library",
   "license": "MIT",
   "minimum-stability": "stable",
+  "repositories": [
+    { "type": "path", "url": "../php-http-entity-manager" }
+  ],
   "require": {
     "php": "^8.0",
     "symfony/config": "~5.4",
     "symfony/dependency-injection": "~5.4",
     "symfony/http-kernel": "~5.4",
     "symfony/finder": "~5.4",
+    "symfony/http-client-contracts": "^3.0",
     "awwar/php-http-entity-manager": "dev-main"
   },
   "autoload": {
