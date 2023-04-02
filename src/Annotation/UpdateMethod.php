@@ -3,13 +3,13 @@
 namespace Awwar\SymfonyHttpEntityManager\Annotation;
 
 use Attribute;
-use Awwar\PhpHttpEntityManager\Enum\RequestEnum;
+use Symfony\Component\HttpFoundation\Request;
 
 #[Attribute(Attribute::TARGET_CLASS)]
 class UpdateMethod implements CacheableAnnotation
 {
     public function __construct(
-        private string $name = RequestEnum::METHOD_PATCH,
+        private string $name = Request::METHOD_PATCH,
         private bool $useDiff = true,
     ) {
     }
@@ -28,7 +28,7 @@ class UpdateMethod implements CacheableAnnotation
             'target'     => Attribute::TARGET_CLASS,
             'targetName' => null,
             'data'       => [
-                'name'     => RequestEnum::METHOD_PATCH,
+                'name'     => Request::METHOD_PATCH,
                 'use_diff' => true,
             ],
         ];

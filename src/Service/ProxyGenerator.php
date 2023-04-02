@@ -12,9 +12,9 @@ class ProxyGenerator
 
     public function generate(string $className): void
     {
-        $fqcnComponents = explode('\\', $className);
-        $class = array_pop($fqcnComponents);
-        $classNamespace = implode('\\', $fqcnComponents);
+        $FQCNComponents = explode('\\', $className);
+        $class = array_pop($FQCNComponents);
+        $classNamespace = implode('\\', $FQCNComponents);
 
         $proxyDir = str_replace('\\', '/', $this->cachePath . '/' . $classNamespace);
         $proxyPath = $proxyDir . '/' . $class . 'Proxy.php';
@@ -24,7 +24,7 @@ class ProxyGenerator
         }
 
         if (!is_dir($proxyDir)) {
-            mkdir($proxyDir, permissions: 0777, recursive: true);
+            mkdir($proxyDir, recursive: true);
         }
 
         $content = strtr($this->getTemplate(), ['{{classPath}}' => $classNamespace, '{{class}}' => $class]);

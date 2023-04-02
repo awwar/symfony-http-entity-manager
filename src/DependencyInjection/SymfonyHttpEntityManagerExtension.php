@@ -4,22 +4,24 @@ declare(strict_types=1);
 
 namespace Awwar\SymfonyHttpEntityManager\DependencyInjection;
 
-use Awwar\PhpHttpEntityManager\Client\Client;
 use Awwar\PhpHttpEntityManager\Client\ClientInterface;
-use Awwar\PhpHttpEntityManager\Http\HttpEntityManager;
-use Awwar\PhpHttpEntityManager\Http\HttpEntityManagerInterface;
-use Awwar\PhpHttpEntityManager\Http\HttpRepository;
-use Awwar\PhpHttpEntityManager\Http\HttpRepositoryInterface;
+use Awwar\PhpHttpEntityManager\EntityManager\HttpEntityManager;
+use Awwar\PhpHttpEntityManager\EntityManager\HttpEntityManagerInterface;
 use Awwar\PhpHttpEntityManager\Metadata\EntityMetadata;
 use Awwar\PhpHttpEntityManager\Metadata\MetadataRegistry;
 use Awwar\PhpHttpEntityManager\Metadata\MetadataRegistryInterface;
-use Awwar\PhpHttpEntityManager\UOW\EntityAtelier;
-use Awwar\PhpHttpEntityManager\UOW\HttpUnitOfWork;
-use Awwar\PhpHttpEntityManager\UOW\HttpUnitOfWorkInterface;
+use Awwar\PhpHttpEntityManager\Repository\HttpRepository;
+use Awwar\PhpHttpEntityManager\Repository\HttpRepositoryInterface;
+use Awwar\PhpHttpEntityManager\UnitOfWork\EntityAtelier;
+use Awwar\PhpHttpEntityManager\UnitOfWork\HttpUnitOfWork;
+use Awwar\PhpHttpEntityManager\UnitOfWork\HttpUnitOfWorkInterface;
+use Awwar\SymfonyHttpEntityManager\Service\Client;
 use Awwar\SymfonyHttpEntityManager\Service\EntityMetadataObtain;
 use Awwar\SymfonyHttpEntityManager\Service\HttpEntitiesDiscovery;
 use Awwar\SymfonyHttpEntityManager\Service\MetadataRegistryFactory;
+use Exception;
 use ReflectionClass;
+use ReflectionException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -37,6 +39,10 @@ class SymfonyHttpEntityManagerExtension extends Extension
         HttpUnitOfWorkInterface::class    => HttpUnitOfWork::class,
     ];
 
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     */
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();

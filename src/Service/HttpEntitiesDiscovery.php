@@ -10,11 +10,6 @@ use Symfony\Component\Finder\SplFileInfo;
 
 class HttpEntitiesDiscovery
 {
-    /**
-     * @var ReflectionClass[]
-     */
-    private array $entitiesReflections = [];
-
     public function __construct(private array $mapping)
     {
     }

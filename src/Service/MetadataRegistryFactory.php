@@ -11,9 +11,15 @@ use Awwar\PhpHttpEntityManager\Metadata\MetadataRegistryInterface;
 use Awwar\PhpHttpEntityManager\Metadata\RelationSettings;
 use Awwar\PhpHttpEntityManager\Metadata\UrlSettings;
 use Awwar\SymfonyHttpEntityManager\Annotation;
+use Exception;
+use ReflectionException;
 
 class MetadataRegistryFactory
 {
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     */
     public static function create(array $settings): MetadataRegistryInterface
     {
         $metadataMap = array_map(fn (array $data) => self::createMetadata($data), $settings);
@@ -21,6 +27,9 @@ class MetadataRegistryFactory
         return new MetadataRegistry($metadataMap);
     }
 
+    /**
+     * @throws ReflectionException
+     */
     private static function createMetadata(array $data): EntityMetadata
     {
         $className = $data['name'];
