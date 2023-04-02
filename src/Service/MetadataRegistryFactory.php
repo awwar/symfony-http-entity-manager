@@ -85,6 +85,10 @@ class MetadataRegistryFactory
         foreach ($relationFields as $map) {
             $settings = $map['data'];
 
+            if (empty($settings)) {
+                continue;
+            }
+
             $fieldsSettings->addRelationField($map['targetName'], new RelationSettings(
                 class: $settings['class'],
                 name: $settings['name'],
@@ -95,6 +99,10 @@ class MetadataRegistryFactory
         $defaultValues = $annotations[Annotation\DefaultValue::class] ?? [];
 
         foreach ($defaultValues as $map) {
+            if (empty($map['targetName'])) {
+                continue;
+            }
+
             $fieldsSettings->addDefaultValue($map['targetName'], $map['value']);
         }
 
