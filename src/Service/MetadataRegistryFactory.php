@@ -103,7 +103,7 @@ class MetadataRegistryFactory
                 continue;
             }
 
-            $fieldsSettings->addDefaultValue($map['targetName'], $map['value']);
+            $fieldsSettings->addDefaultValue($map['targetName'], $map['data']['value']);
         }
 
         $client = new Client(
