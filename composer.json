@@ -6,11 +6,11 @@
   "minimum-stability": "stable",
   "require": {
     "php": "^8.0",
-    "symfony/config": "~5.4",
-    "symfony/dependency-injection": "~5.4",
-    "symfony/http-kernel": "~5.4",
-    "symfony/finder": "~5.4",
-    "symfony/http-client-contracts": "^3.0",
+    "symfony/config": "~5.4|^6.0",
+    "symfony/dependency-injection": "~5.4|^6.0",
+    "symfony/http-kernel": "~5.4|^6.0",
+    "symfony/finder": "~5.4|^6.0",
+    "symfony/http-client-contracts": "^2.0|^3.0",
     "awwar/php-http-entity-manager": "dev-feature/1"
   },
   "autoload": {
