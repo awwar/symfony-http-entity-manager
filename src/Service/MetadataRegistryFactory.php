@@ -79,9 +79,9 @@ class MetadataRegistryFactory
         );
 
         $filterSettings = new FilterSettings(
-            filterQuery: (array) $annotations[Annotation\FilterQuery::class][0]['data'] ?? [],
-            getOneQuery: (array) $annotations[Annotation\GetOneQuery::class][0]['data'] ?? [],
-            filterOneQuery: (array) $annotations[Annotation\FilterOneQuery::class][0]['data'] ?? [],
+            filterQuery: (array) ($annotations[Annotation\FilterQuery::class][0]['data'] ?? []),
+            getOneQuery: (array) ($annotations[Annotation\GetOneQuery::class][0]['data'] ?? []),
+            filterOneQuery: (array) ($annotations[Annotation\FilterOneQuery::class][0]['data'] ?? []),
         );
 
         $fieldsSettings = new FieldsSettings((string) $idProperty);
