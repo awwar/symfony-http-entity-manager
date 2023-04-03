@@ -11,13 +11,4 @@ class EntityId implements CacheableAnnotation
     {
         return [];
     }
-
-    public static function getDefault(): array
-    {
-        return [
-            'target'     => Attribute::TARGET_PROPERTY,
-            'targetName' => null,
-            'data'       => [],
-        ];
-    }
 }

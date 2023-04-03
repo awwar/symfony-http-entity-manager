@@ -20,15 +20,6 @@ class RelationField implements CacheableAnnotation
     ) {
     }
 
-    public static function getDefault(): array
-    {
-        return [
-            'target'     => Attribute::TARGET_PROPERTY,
-            'targetName' => null,
-            'data'       => [],
-        ];
-    }
-
     public function toArray(): array
     {
         return [

@@ -15,19 +15,19 @@ class EntityMetadataObtain
     public function __construct()
     {
         $this->expectedAttributes = [
-            Annotation\HttpEntity::class        => Annotation\HttpEntity::getDefault(),
-            Annotation\EntityId::class          => Annotation\EntityId::getDefault(),
-            Annotation\CreateLayout::class      => Annotation\CreateLayout::getDefault(),
-            Annotation\UpdateLayout::class      => Annotation\UpdateLayout::getDefault(),
-            Annotation\UpdateMethod::class      => Annotation\UpdateMethod::getDefault(),
-            Annotation\DataField::class         => Annotation\DataField::getDefault(),
-            Annotation\RelationField::class     => Annotation\RelationField::getDefault(),
-            Annotation\FilterQuery::class       => Annotation\FilterQuery::getDefault(),
-            Annotation\FilterOneQuery::class    => Annotation\FilterOneQuery::getDefault(),
-            Annotation\GetOneQuery::class       => Annotation\GetOneQuery::getDefault(),
-            Annotation\RelationMapper::class    => Annotation\RelationMapper::getDefault(),
-            Annotation\ListDetermination::class => Annotation\ListDetermination::getDefault(),
-            Annotation\DefaultValue::class      => Annotation\DefaultValue::getDefault(),
+            Annotation\HttpEntity::class,
+            Annotation\EntityId::class,
+            Annotation\CreateLayout::class,
+            Annotation\UpdateLayout::class,
+            Annotation\UpdateMethod::class,
+            Annotation\DataField::class,
+            Annotation\RelationField::class,
+            Annotation\FilterQuery::class,
+            Annotation\FilterOneQuery::class,
+            Annotation\GetOneQuery::class,
+            Annotation\RelationMapper::class,
+            Annotation\ListDetermination::class,
+            Annotation\DefaultValue::class,
         ];
     }
 
@@ -46,18 +46,12 @@ class EntityMetadataObtain
             $this->processAttribute($result, $property->getName(), fn ($class) => $property->getAttributes($class));
         }
 
-        foreach ($this->expectedAttributes as $expected => $default) {
-            if (false === empty($default) && empty($result['attribute'][$expected])) {
-                $result['attribute'][$expected][] = $default;
-            }
-        }
-
         return $result;
     }
 
     private function processAttribute(array &$result, string $targetName, Closure $attributeAccessor): void
     {
-        foreach ($this->expectedAttributes as $expected => $default) {
+        foreach ($this->expectedAttributes as $expected) {
             $attributes = $attributeAccessor($expected);
 
             foreach ($attributes as $attribute) {

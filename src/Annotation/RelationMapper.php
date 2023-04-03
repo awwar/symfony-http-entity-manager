@@ -15,13 +15,4 @@ class RelationMapper implements CacheableAnnotation
     {
         return [];
     }
-
-    public static function getDefault(): array
-    {
-        return [
-            'target'     => Attribute::TARGET_METHOD,
-            'targetName' => null,
-            'data'       => [],
-        ];
-    }
 }

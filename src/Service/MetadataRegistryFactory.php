@@ -12,7 +12,9 @@ use Awwar\PhpHttpEntityManager\Metadata\RelationSettings;
 use Awwar\PhpHttpEntityManager\Metadata\UrlSettings;
 use Awwar\SymfonyHttpEntityManager\Annotation;
 use Exception;
+use InvalidArgumentException;
 use ReflectionException;
+use RuntimeException;
 
 class MetadataRegistryFactory
 {
@@ -41,11 +43,23 @@ class MetadataRegistryFactory
         /** @var class-string $proxyClass */
         $proxyClass = str_replace('/', '\\', $proxyClass);
 
-        $generalEntityData = $annotations[Annotation\HttpEntity::class][0]['data'];
+        $generalEntityData = $annotations[Annotation\HttpEntity::class][0]['data'] ?? [];
+
+        if (empty($generalEntityData)) {
+            throw new RuntimeException(
+                sprintf("Got %s entity without %s attribute", $className, Annotation\HttpEntity::class)
+            );
+        }
 
         $customName = $generalEntityData['name'] ?? $className;
 
-        $idProperty = $annotations[Annotation\EntityId::class][0]['targetName'] ?? '';
+        $idProperty = $annotations[Annotation\EntityId::class][0]['targetName'] ?? null;
+
+        if ($idProperty === null) {
+            throw new InvalidArgumentException(
+                sprintf("Entity %s must contain id property with %s attribute", $className, Annotation\EntityId::class)
+            );
+        }
 
         $useDiffOnUpdate = (bool) $annotations[Annotation\UpdateMethod::class][0]['data']['use_diff'] ?? false;
 
@@ -70,7 +84,7 @@ class MetadataRegistryFactory
             filterOneQuery: (array) $annotations[Annotation\FilterOneQuery::class][0]['data'] ?? [],
         );
 
-        $fieldsSettings = new FieldsSettings($idProperty);
+        $fieldsSettings = new FieldsSettings((string) $idProperty);
 
         $dataFields = $annotations[Annotation\DataField::class] ?? [];
 
@@ -85,10 +99,6 @@ class MetadataRegistryFactory
         foreach ($relationFields as $map) {
             $settings = $map['data'];
 
-            if (empty($settings)) {
-                continue;
-            }
-
             $fieldsSettings->addRelationField($map['targetName'], new RelationSettings(
                 class: $settings['class'],
                 name: $settings['name'],
@@ -99,10 +109,6 @@ class MetadataRegistryFactory
         $defaultValues = $annotations[Annotation\DefaultValue::class] ?? [];
 
         foreach ($defaultValues as $map) {
-            if (empty($map['targetName'])) {
-                continue;
-            }
-
             $fieldsSettings->addDefaultValue($map['targetName'], $map['data']['value']);
         }
 

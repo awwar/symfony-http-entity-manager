@@ -32,19 +32,4 @@ class DataField implements CacheableAnnotation
             'afterUpdate'  => $this->postUpdate === EmptyValue::class ? $this->post : $this->postUpdate,
         ];
     }
-
-    public static function getDefault(): array
-    {
-        return [
-            'target'     => Attribute::TARGET_PROPERTY,
-            'targetName' => null,
-            'data'       => [
-                'beforeCreate' => null,
-                'afterCreate'  => null,
-                'afterRead'    => null,
-                'beforeUpdate' => null,
-                'afterUpdate'  => null,
-            ],
-        ];
-    }
 }

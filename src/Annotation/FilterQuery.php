@@ -18,13 +18,4 @@ class FilterQuery implements CacheableAnnotation
         }
         return call_user_func($this->callback, ...$this->args);
     }
-
-    public static function getDefault(): array
-    {
-        return [
-            'target'     => Attribute::TARGET_CLASS,
-            'targetName' => null,
-            'data'       => [],
-        ];
-    }
 }

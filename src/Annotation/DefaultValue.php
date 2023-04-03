@@ -13,17 +13,6 @@ class DefaultValue implements CacheableAnnotation
     ) {
     }
 
-    public static function getDefault(): array
-    {
-        return [
-            'target'     => Attribute::TARGET_PROPERTY,
-            'targetName' => null,
-            'data'       => [
-                'value' => EmptyValue::class,
-            ],
-        ];
-    }
-
     public function toArray(): array
     {
         $value = EmptyValue::class;

@@ -21,16 +21,4 @@ class UpdateMethod implements CacheableAnnotation
             'use_diff' => $this->useDiff,
         ];
     }
-
-    public static function getDefault(): array
-    {
-        return [
-            'target'     => Attribute::TARGET_CLASS,
-            'targetName' => null,
-            'data'       => [
-                'name'     => Request::METHOD_PATCH,
-                'use_diff' => true,
-            ],
-        ];
-    }
 }

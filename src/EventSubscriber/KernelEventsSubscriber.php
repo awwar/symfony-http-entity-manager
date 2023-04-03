@@ -12,15 +12,25 @@ class KernelEventsSubscriber implements EventSubscriberInterface
     {
     }
 
-    public function clearEm(): void
+    public function cleanupHttpEntityManager(): void
     {
         $this->entityManager->clear();
     }
 
     public static function getSubscribedEvents(): array
     {
-        return [
-            KernelEvents::TERMINATE => 'clearEm',
+        $events = [
+            KernelEvents::TERMINATE => 'cleanupHttpEntityManager',
         ];
+
+        if (class_exists('Symfony\Component\Messenger\Event\WorkerMessageHandledEvent', true)) {
+            $events['Symfony\Component\Messenger\Event\WorkerMessageHandledEvent'] = 'cleanupHttpEntityManager';
+        }
+
+        if (class_exists('Symfony\Component\Messenger\Event\WorkerMessageFailedEvent', true)) {
+            $events['Symfony\Component\Messenger\Event\WorkerMessageFailedEvent'] = 'cleanupHttpEntityManager';
+        }
+
+        return $events;
     }
 }

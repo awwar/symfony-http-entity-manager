@@ -44,9 +44,4 @@ class HttpEntity implements CacheableAnnotation
             'delete'     => $this->deletePattern,
         ];
     }
-
-    public static function getDefault(): array
-    {
-        return [];
-    }
 }
