@@ -15,6 +15,7 @@ use Awwar\PhpHttpEntityManager\Repository\HttpRepositoryInterface;
 use Awwar\PhpHttpEntityManager\UnitOfWork\EntityAtelier;
 use Awwar\PhpHttpEntityManager\UnitOfWork\HttpUnitOfWork;
 use Awwar\PhpHttpEntityManager\UnitOfWork\HttpUnitOfWorkInterface;
+use Awwar\SymfonyHttpEntityManager\EventSubscriber\KernelEventsSubscriber;
 use Awwar\SymfonyHttpEntityManager\Service\Client;
 use Awwar\SymfonyHttpEntityManager\Service\EntityMetadataObtain;
 use Awwar\SymfonyHttpEntityManager\Service\HttpEntitiesDiscovery;
@@ -90,5 +91,13 @@ class SymfonyHttpEntityManagerExtension extends Extension
 
         $container->setParameter('http_entity.proxy_dir', '%kernel.cache_dir%/http_entity/Proxies/__HTTP__');
         $container->setParameter('http_entity.entity_classes', $entityClasses);
+
+        $kernelEventSubscriber = new Definition(KernelEventsSubscriber::class);
+        $kernelEventSubscriber
+            ->setAutoconfigured(true)
+            ->setAutowired(true)
+            ->addTag('kernel.event_subscriber');
+
+        $container->setDefinition(KernelEventsSubscriber::class, $kernelEventSubscriber);
     }
 }
