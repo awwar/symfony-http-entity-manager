@@ -78,7 +78,9 @@ There are 8 mapping settings in total:
 
 For complex combinatorics, use the rule:
 
-`preCreate` > `pre` > `all`
+`pre.*` > `pre` > `all`
+
+`post.*` > `post` > `all`
 
 ## RelationField
 
@@ -89,18 +91,18 @@ Target: `property`
 Related Entity Mapping Label
 
 ```php
-#[RelationField(Deal::class, 'deals', RelationField::MANY)]
+#[RelationField(class: Deal::class, name: 'deals', expects: RelationSettings::MANY)]
 ```
 
 `class` - FQCN of the entity your entity refers to (this should also be `HttpEntity`)
 
 `name` - the alias of the related entity
 
-`expects` - if collection then `RelationField::MANY`. If one, then `RelationField::ONE`
+`expects` - if collection then `RelationSettings::MANY`. If one, then `RelationSettings::ONE`
 
 ## RelationMapper
 
-Require: <mark>Only if there are entities</mark>
+Require: <mark>Only if related entities exists</mark>
 
 Target: `method`
 
@@ -113,7 +115,7 @@ That is, you have a user, he has transactions
 In the user, you marked transactions with the attribute
 
 ```php
-#[RelationField(Deal::class, 'deals', RelationField::MANY)]
+#[RelationField(class: Deal::class, name: 'deals', expects: RelationSettings::MANY)]
 ```
 
 Then the whole response will come to the mapper, and the name that you wrote in the second argument of RelationField will
@@ -136,9 +138,9 @@ come to `$name`
     }
 ```
 
-`FullData` - передать данные вложенной сущности в аргумент конструктора в том формате, который вы хотели бы получить при
-отдельном запросе для этого объекта. Допустим, вы хотите выкинуть данные для `сделок`, а потом вставить `FullData`
-данные в формате, который поставляется с `GET /deals/123`
+`FullData` - pass the nested entity data to the constructor argument in the format that you would like to receive when
+separate request for this object. Let's say you want to throw out the data for `deals`, and then insert `FullData`
+data in the format that comes with `GET /deals/123`
 
 `Reference` - if in a nested entity you get not data, but only their id - put this id in `Reference`. Then lazy loading
 will work and the object will be fully loaded when accessing any unloaded property.

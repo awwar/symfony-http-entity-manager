@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2023-06-28
+
+# !! BREAKING CHANGES !!
+
+* All classes related to EntityManager logic (except the annotations) have been moved to `Awwar\PhpHttpEntityManager`
+  namespace. Sorry for that. Current package will wrap around `awwar/php-http-entity-manager` package.
+* Rename `RelationMap` Annotation to `RelationField`.
+* Rename `FieldMap` Annotation to `DataField`.
+
+### Refactor
+
+* Extends this package from awwar/php-http-entity-manager
+
 ## [1.0.3] - 2023-02-01
 
 ### Fixed
@@ -36,7 +49,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 * HttpEntityManager: find method can use criteria for requests
 
 ### Doc
-
+``
 * Init documentation
 
 ## [1.0.0] - 2022-09-06

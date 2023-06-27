@@ -8,10 +8,7 @@ use Awwar\PhpHttpEntityManager\Exception\NotFoundException;
 use Awwar\PhpHttpEntityManager\Exception\NotProcessedException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\DecodingExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\ServerExceptionInterface;
-use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class Client implements ClientInterface
@@ -53,18 +50,14 @@ class Client implements ClientInterface
             } else {
                 return $this->client->request($method, $path, $context)->toArray();
             }
-        } catch (
-        TransportExceptionInterface
-        |RedirectionExceptionInterface
-        |DecodingExceptionInterface
-        |ServerExceptionInterface $e
-        ) {
-            throw new NotProcessedException(entity: $this->entityName, previous: $e);
         } catch (ClientExceptionInterface $e) {
             if ($e->getCode() === 404) {
                 throw new NotFoundException(entity: $this->entityName, previous: $e);
             }
+
             throw new InvalidDataException(entity: $this->entityName, previous: $e);
+        } catch (ExceptionInterface $e) {
+            throw new NotProcessedException(entity: $this->entityName, previous: $e);
         }
     }
 }

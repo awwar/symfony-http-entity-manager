@@ -16,7 +16,7 @@ class RelationField implements CacheableAnnotation
         private string $class,
         private string $name,
         private int $expects,
-        private ?string $lateUrl = null
+        //private ?string $lateUrl = null
     ) {
     }
 
@@ -26,7 +26,7 @@ class RelationField implements CacheableAnnotation
             'class'   => $this->class,
             'name'    => $this->name,
             'expects' => $this->expects,
-            'lateUrl' => $this->lateUrl,
+            //'lateUrl' => $this->lateUrl,
         ];
     }
 }

@@ -30,17 +30,18 @@ class ProxyGenerator
         $content = strtr($this->getTemplate(), ['{{classPath}}' => $classNamespace, '{{class}}' => $class]);
 
         file_put_contents($proxyPath, $content);
-        @chmod($proxyPath, 0664);
-    }
 
-    public function getProxyNamespace(): string
-    {
-        return self::PROXY_NAMESPACE;
+        @chmod($proxyPath, 0664);
     }
 
     public function getCachePath(): string
     {
         return $this->cachePath;
+    }
+
+    public function getProxyNamespace(): string
+    {
+        return self::PROXY_NAMESPACE;
     }
 
     private function getTemplate(): string

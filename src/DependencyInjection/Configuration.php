@@ -17,20 +17,21 @@ class Configuration implements ConfigurationInterface
 
         $root
             ->getRootNode()
-            ->children()
-            ->arrayNode('entity_mapping')
-            ->useAttributeAsKey('name')
-            ->normalizeKeys(false)
-            ->arrayPrototype()
-            ->children()
-            ->scalarNode('directory')
-            ->info('Directory containing the entity')
-            ->cannotBeEmpty()
-            ->end()
-            ->end()
-            ->end()
-            ->end()
-            ->end();
+                ->children()
+                    ->arrayNode('entity_mapping')
+                        ->useAttributeAsKey('name')
+                        ->normalizeKeys(false)
+                        ->arrayPrototype()
+                            ->children()
+                                ->scalarNode('directory')
+                                    ->info('Directory containing the entity')
+                                    ->cannotBeEmpty()
+                                ->end()
+                            ->end()
+                        ->end()
+                    ->end()
+                ->end();
+        ;
 
         return $root;
     }

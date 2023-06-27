@@ -24,7 +24,9 @@ class SymfonyHttpEntityManagerBundle extends Bundle
 
             $className = str_replace($generator->getProxyNamespace(), '', $className);
 
-            require str_replace('\\', '/', $generator->getCachePath() . '/' . $className . '.php');
+            $classPath = sprintf('%s/%s.php', $generator->getCachePath(), $className);
+
+            require str_replace('\\', '/', $classPath);
         };
 
         spl_autoload_register($autoloader, prepend: true);

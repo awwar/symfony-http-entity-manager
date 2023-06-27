@@ -25,7 +25,7 @@ This is a rather complex format for our library, and we need your help to cope w
 and then we will figure out what annotations need to be added so that the library can synchronize it with the api.
 
 ```php
-class contact
+class Contact
 {
     private ?string $id = null;
 
