@@ -5,12 +5,8 @@ namespace Awwar\SymfonyHttpEntityManager\Annotation;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-class RelationMapper implements CacheableAnnotation
+class UpdateRequestLayoutCallback implements CacheableAnnotation
 {
-    public function __construct()
-    {
-    }
-
     public function toArray(): array
     {
         return [];

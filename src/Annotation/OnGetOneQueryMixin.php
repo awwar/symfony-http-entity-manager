@@ -5,7 +5,7 @@ namespace Awwar\SymfonyHttpEntityManager\Annotation;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_CLASS)]
-class FilterQuery implements CacheableAnnotation
+class OnGetOneQueryMixin implements CacheableAnnotation
 {
     public function __construct(private array $query = [], private array $callback = [], private array $args = [])
     {
@@ -16,6 +16,7 @@ class FilterQuery implements CacheableAnnotation
         if (false === empty($this->query)) {
             return $this->query;
         }
+
         return call_user_func($this->callback, ...$this->args);
     }
 }

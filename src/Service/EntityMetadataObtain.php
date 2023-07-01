@@ -17,16 +17,16 @@ class EntityMetadataObtain
         $this->expectedAttributes = [
             Annotation\HttpEntity::class,
             Annotation\EntityId::class,
-            Annotation\CreateLayout::class,
-            Annotation\UpdateLayout::class,
+            Annotation\CreateRequestLayoutCallback::class,
+            Annotation\UpdateRequestLayoutCallback::class,
             Annotation\UpdateMethod::class,
             Annotation\DataField::class,
             Annotation\RelationField::class,
-            Annotation\FilterQuery::class,
-            Annotation\FilterOneQuery::class,
-            Annotation\GetOneQuery::class,
-            Annotation\RelationMapper::class,
-            Annotation\ListDetermination::class,
+            Annotation\OnFilterQueryMixin::class,
+            Annotation\OnFindOneQueryMixin::class,
+            Annotation\OnGetOneQueryMixin::class,
+            Annotation\RelationMappingCallback::class,
+            Annotation\ListMappingCallback::class,
             Annotation\DefaultValue::class,
         ];
     }

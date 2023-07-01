@@ -64,10 +64,10 @@ class MetadataRegistryFactory
         $useDiffOnUpdate = (bool) $annotations[Annotation\UpdateMethod::class][0]['data']['use_diff'] ?? false;
 
         $callbacksSettings = new CallbacksSettings(
-            relationMapperMethod: $annotations[Annotation\RelationMapper::class][0]['targetName'] ?? null,
-            createLayoutMethod: $annotations[Annotation\CreateLayout::class][0]['targetName'] ?? null,
-            updateLayoutMethod: $annotations[Annotation\UpdateLayout::class][0]['targetName'] ?? null,
-            listDeterminationMethod: $annotations[Annotation\ListDetermination::class][0]['targetName'] ?? null,
+            relationMapperMethod: $annotations[Annotation\RelationMappingCallback::class][0]['targetName'] ?? null,
+            createLayoutMethod: $annotations[Annotation\CreateRequestLayoutCallback::class][0]['targetName'] ?? null,
+            updateLayoutMethod: $annotations[Annotation\UpdateRequestLayoutCallback::class][0]['targetName'] ?? null,
+            listDeterminationMethod: $annotations[Annotation\ListMappingCallback::class][0]['targetName'] ?? null,
         );
 
         $urlSettings = new UrlSettings(
@@ -79,9 +79,9 @@ class MetadataRegistryFactory
         );
 
         $filterSettings = new FilterSettings(
-            filterQuery: (array) ($annotations[Annotation\FilterQuery::class][0]['data'] ?? []),
-            getOneQuery: (array) ($annotations[Annotation\GetOneQuery::class][0]['data'] ?? []),
-            filterOneQuery: (array) ($annotations[Annotation\FilterOneQuery::class][0]['data'] ?? []),
+            filterQuery: (array) ($annotations[Annotation\OnFilterQueryMixin::class][0]['data'] ?? []),
+            getOneQuery: (array) ($annotations[Annotation\OnGetOneQueryMixin::class][0]['data'] ?? []),
+            filterOneQuery: (array) ($annotations[Annotation\OnFindOneQueryMixin::class][0]['data'] ?? []),
         );
 
         $fieldsSettings = new FieldsSettings((string) $idProperty);

@@ -14,17 +14,18 @@ class RelationField implements CacheableAnnotation
 
     public function __construct(
         private string $class,
-        private string $name,
         private int $expects,
+        private string $alias = "",
         //private ?string $lateUrl = null
-    ) {
+    )
+    {
     }
 
     public function toArray(): array
     {
         return [
             'class'   => $this->class,
-            'name'    => $this->name,
+            'name'    => $this->alias,
             'expects' => $this->expects,
             //'lateUrl' => $this->lateUrl,
         ];

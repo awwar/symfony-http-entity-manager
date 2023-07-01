@@ -5,7 +5,7 @@ namespace Awwar\SymfonyHttpEntityManager\Annotation;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_METHOD)]
-class ListDetermination implements CacheableAnnotation
+class RelationMappingCallback implements CacheableAnnotation
 {
     public function __construct()
     {

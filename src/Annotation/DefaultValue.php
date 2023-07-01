@@ -7,6 +7,7 @@ use Attribute;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 class DefaultValue implements CacheableAnnotation
 {
+
     public function __construct(
         private int|string|bool|array|float|null $value = EmptyValue::class,
         private ?array $callback = null
@@ -27,4 +28,5 @@ class DefaultValue implements CacheableAnnotation
             'value' => $value,
         ];
     }
+
 }

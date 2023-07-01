@@ -3,7 +3,7 @@ charset = utf-8
 end_of_line = lf
 indent_size = 4
 indent_style = tab
-insert_final_newline = false
+insert_final_newline = true
 max_line_length = 120
 tab_width = 4
 ij_continuation_indent_size = 8
@@ -252,7 +252,3 @@ ij_php_variable_naming_style = mixed
 ij_php_version_weight = 28
 ij_php_while_brace_force = always
 ij_php_while_on_new_line = false
-
-[{*.toml,Cargo.lock,Cargo.toml.orig,Gopkg.lock,Pipfile,poetry.lock}]
-indent_style = space
-ij_toml_keep_indents_on_empty_lines = false
