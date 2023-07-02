@@ -35,7 +35,7 @@ class Contact
 
     private string $email = '';
 
-    private array $deals;
+    private Collection $deals;
 
     private ?Admin $admin = null;
 
@@ -61,7 +61,7 @@ class Contact
 
     public function addDeal(Deal $deal): void
     {
-        if (in_array($deal, (array) $this->deals)) {
+        if ($this->deals->contain($deal)) {
             return;
         }
 
@@ -85,9 +85,9 @@ performance need other [annotations](ANNOTATIONS.md)
 ```php
 #[HttpEntity(name: 'contacts', client: "json_api.client", repository: ContactRepository::class, delete: 'delete-admin/{id}')]
 #[UpdateMethod(name: Request::METHOD_PATCH)]
-#[GetOneQuery(callback: [IncludesHelper::class, 'calculateIncludes'], args: [self::class])]
-#[FilterQuery(['include' => 'admin,deals'])]
-#[FilterOneQuery(['include' => 'admin,deals', 'page' => ['size' => 1]])]
+#[OnGetOneQueryMixin(callback: [IncludesHelper::class, 'calculateIncludes'], args: [self::class])]
+#[OnFilterQueryMixin(['include' => 'admin,deals'])]
+#[OnFindOneQueryMixin(['include' => 'admin,deals', 'page' => ['size' => 1]])]
 class Contact
 {
     #[EntityId]
@@ -132,14 +132,14 @@ class Contact
 
     public function addDeal(Deal $deal): void
     {
-        if (in_array($deal, (array) $this->deals)) {
+        if ($this->deals->contain($deal)) {
             return;
         }
 
         $this->deals[] = $deal;
     }
     
-    #[ListDetermination]
+    #[ListMappingCallback]
     protected function list(array $data): iterable
     {
         foreach ($data['data'] as $element) {
@@ -147,8 +147,8 @@ class Contact
         }
     }
     
-    #[UpdateLayout]
-    #[CreateLayout]
+    #[UpdateRequestLayoutCallback]
+    #[CreateRequestLayoutCallback]
     protected function layout(
         self $entity,
         array $entityChanges = [],
@@ -186,7 +186,7 @@ class Contact
         ];
     }
     
-    #[RelationMapper]
+    #[RelationMappingCallback]
     protected function mapper(array &$data, string $name): iterable
     {
         $relationships = $mainData['relationships'][$name]['data'] ?? [];

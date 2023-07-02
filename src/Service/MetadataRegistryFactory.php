@@ -64,10 +64,10 @@ class MetadataRegistryFactory
         $useDiffOnUpdate = (bool) $annotations[Annotation\UpdateMethod::class][0]['data']['use_diff'] ?? false;
 
         $callbacksSettings = new CallbacksSettings(
-            relationMapperMethod: $annotations[Annotation\RelationMappingCallback::class][0]['targetName'] ?? null,
-            createLayoutMethod: $annotations[Annotation\CreateRequestLayoutCallback::class][0]['targetName'] ?? null,
-            updateLayoutMethod: $annotations[Annotation\UpdateRequestLayoutCallback::class][0]['targetName'] ?? null,
-            listDeterminationMethod: $annotations[Annotation\ListMappingCallback::class][0]['targetName'] ?? null,
+            relationMappingCallbackMethod: $annotations[Annotation\RelationMappingCallback::class][0]['targetName'] ?? null,
+            createRequestLayoutCallbackMethod: $annotations[Annotation\CreateRequestLayoutCallback::class][0]['targetName'] ?? null,
+            updateRequestLayoutCallbackMethod: $annotations[Annotation\UpdateRequestLayoutCallback::class][0]['targetName'] ?? null,
+            listMappingCallbackMethod: $annotations[Annotation\ListMappingCallback::class][0]['targetName'] ?? null,
         );
 
         $urlSettings = new UrlSettings(
@@ -79,9 +79,9 @@ class MetadataRegistryFactory
         );
 
         $filterSettings = new FilterSettings(
-            filterQuery: (array) ($annotations[Annotation\OnFilterQueryMixin::class][0]['data'] ?? []),
-            getOneQuery: (array) ($annotations[Annotation\OnGetOneQueryMixin::class][0]['data'] ?? []),
-            filterOneQuery: (array) ($annotations[Annotation\OnFindOneQueryMixin::class][0]['data'] ?? []),
+            onFilterQueryMixin: (array) ($annotations[Annotation\OnFilterQueryMixin::class][0]['data'] ?? []),
+            onGetOneQueryMixin: (array) ($annotations[Annotation\OnGetOneQueryMixin::class][0]['data'] ?? []),
+            onFindOneQueryMixin: (array) ($annotations[Annotation\OnFindOneQueryMixin::class][0]['data'] ?? []),
         );
 
         $fieldsSettings = new FieldsSettings((string) $idProperty);

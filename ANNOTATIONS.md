@@ -91,7 +91,7 @@ Target: `property`
 Related Entity Mapping Label
 
 ```php
-#[RelationField(class: Deal::class, name: 'deals', expects: RelationSettings::MANY)]
+#[RelationField(class: Deal::class, expects: RelationSettings::MANY, alias: 'deals')]
 ```
 
 `class` - FQCN of the entity your entity refers to (this should also be `HttpEntity`)
@@ -100,7 +100,7 @@ Related Entity Mapping Label
 
 `expects` - if collection then `RelationSettings::MANY`. If one, then `RelationSettings::ONE`
 
-## RelationMapper
+## RelationMappingCallback
 
 Require: <mark>Only if related entities exists</mark>
 
@@ -115,14 +115,14 @@ That is, you have a user, he has transactions
 In the user, you marked transactions with the attribute
 
 ```php
-#[RelationField(class: Deal::class, name: 'deals', expects: RelationSettings::MANY)]
+#[RelationField(class: Deal::class, expects: RelationSettings::MANY, alias: 'deals')]
 ```
 
 Then the whole response will come to the mapper, and the name that you wrote in the second argument of RelationField will
 come to `$name`
 
 ```php
-    #[RelationMapper]
+    #[RelationMappingCallback]
     protected function mapper(array &$data, string $name): iterable
     {
         $relationships = $mainData['relationships'][$name]['data'] ?? [];
@@ -145,7 +145,7 @@ data in the format that comes with `GET /deals/123`
 `Reference` - if in a nested entity you get not data, but only their id - put this id in `Reference`. Then lazy loading
 will work and the object will be fully loaded when accessing any unloaded property.
 
-## ListDetermination
+## ListMappingCallback
 
 Require: <mark>YES</mark>
 
@@ -187,7 +187,7 @@ And when getting a list of entities (`GET /user/`) like this:
 The mapper should look like this:
 
 ```php
-    #[ListDetermination]
+    #[ListMappingCallback]
     protected function list(array $data): iterable
     {
         foreach ($data['data'] as $element) {
@@ -215,11 +215,11 @@ Specifies which HTTP method to update (PATCH or PUT)
 
 `useDiff` - when updating, whether to send only changes or all new state (true by default, i.e. "only changes")
 
-## GetOneQuery
+## OnGetOneQueryMixin
 
-## FilterQuery
+## OnFilterQueryMixin
 
-## FilterOneQuery
+## OnFindOneQueryMixin
 
 Require: <mark>NO</mark>
 
@@ -229,8 +229,8 @@ An array with the http request that will be merged with the overall http request
 filtering one". request respectively
 
 ```php
-#[FilterOneQuery(['include' => 'user,deals', 'page' => ['size' => 1]])]
-#[GetOneQuery(callback: ['class', 'method'], args: [1, 2, 3])]
+#[OnFindOneQueryMixin(['include' => 'user,deals', 'page' => ['size' => 1]])]
+#[OnGetOneQueryMixin(callback: ['class', 'method'], args: [1, 2, 3])]
 ```
 
 `query` - array of http query
@@ -253,9 +253,9 @@ Default value if key was not found in response
 #[DefaultValue(null)]
 ```
 
-## UpdateLayout
+## UpdateRequestLayoutCallback
 
-## CreateLayout
+## CreateRequestLayoutCallback
 
 Require: <mark>NO</mark>
 
@@ -264,8 +264,8 @@ Target: `method`
 Callback function for pre-creating an update request or creating an entity
 
 ```php
-    #[UpdateLayout]
-    #[CreateLayout]
+    #[UpdateRequestLayoutCallback]
+    #[CreateRequestLayoutCallback]
     protected function layout(
         self $entity,
         array $nonRelationChanges = [],
