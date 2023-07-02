@@ -43,13 +43,6 @@ class SymfonyHttpEntityManagerBundle extends Bundle
         }
     }
 
-    public function build(ContainerBuilder $container)
-    {
-        parent::build($container);
-
-
-    }
-
     public function shutdown(): void
     {
         if ($this->autoloader !== null) {

@@ -1,6 +1,6 @@
 # SymfonyHttpEntityManager
 
-To synchronize your entity with an external API, you need to go through 3 simple steps:
+To begin, you need to go through 3 simple steps:
 
 ## Setting up
 
@@ -143,28 +143,22 @@ class Contact
     protected function list(array $data): iterable
     {
         foreach ($data['data'] as $element) {
-            yield new Data(['data' => $element, 'included' => $data['included']], $data['links']['next']);
+            yield new Item(['data' => $element, 'included' => $data['included']], $data['links']['next']);
         }
     }
     
     #[UpdateRequestLayoutCallback]
     #[CreateRequestLayoutCallback]
-    protected function layout(
-        self $entity,
-        array $entityChanges = [],
-        array $relationChanges = [],
-        array $entityData = [],
-        array $relationData = [],
-    ): array {
+    protected function layout(EntityChangesDTO $changesDTO): array {
         $relationship = [];
         $ids = [];
 
-        if (false === empty($relationChanges)) {
-            foreach ($relationData as $name => $relation) {
+        if (false === empty($changesDTO->getEntityChanges())) {
+            foreach ($changesDTO->getRelationsSnapshot() as $name => $relation) {
                 $jsonApiRelation = [];
                 if ($relation instanceof Collection) {
                     foreach ($relation as $value) {
-                        $jsonApiRelation [] = [
+                        $jsonApiRelation[] = [
                             'type' => $value::NAME,
                             'id'   => $value->getId(),
                         ];
@@ -177,8 +171,8 @@ class Contact
             }
         }
 
-        if ($entity->id !== null) {
-            $ids = ['id' => $entity->id];
+        if ($this->id !== null) {
+            $ids = ['id' => $this->id];
         }
 
         return [
@@ -194,9 +188,9 @@ class Contact
         foreach ($relationships as $rel) {
             $id = $rel['id'];
             if ($relations = $included[$rel['type']] ?? false) {
-                yield new FullData(['data' => $relations[$id], 'included' => $data['included']]);
+                yield new RelationData(['data' => $relations[$id], 'included' => $data['included']]);
             } else {
-                yield new Reference($id);
+                yield new RelationReference($id);
             }
         }
     }

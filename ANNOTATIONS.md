@@ -10,11 +10,11 @@ Http entity label
 #[HttpEntity(name: 'contacts', client: "json_api.client", repository: ContactRepository::class, delete: 'delete-user/{id}')]
 ```
 
-`name` is the name of the entity. Participates in the formation of the resource url. Default `GET /{name}/{id}`
+`name` entity name. Participates in the formation of the resource url. Default `GET /{name}/{id}`
 or `POST /{name}`
 
-`client` - the http client that will be used for all requests. Required
-interface `Symfony\Contracts\HttpClient\HttpClientInterface`. You can use scoped_client
+`client` - the http client that will be used for requests. Required
+interface `Symfony\Contracts\HttpClient\HttpClientInterface`. Also, you can use scoped_client
 
 `repository` - default repository, optional
 
@@ -30,6 +30,7 @@ Label of the field responsible for id
 
 ```php
 #[EntityId]
+private int $id = 0;
 ```
 
 ## DataField
@@ -42,6 +43,7 @@ Data mapping label (not for nested entities)
 
 ```php
 #[DataField(all: 'data.id', preCreate: null)]
+private int $id = 0;
 ```
 
 Dot Notation is used to specify the path to the data from the request. That is, if after updating the entity we receive
@@ -92,6 +94,7 @@ Related Entity Mapping Label
 
 ```php
 #[RelationField(class: Deal::class, expects: RelationSettings::MANY, alias: 'deals')]
+private Deal $deal;
 ```
 
 `class` - FQCN of the entity your entity refers to (this should also be `HttpEntity`)
@@ -130,19 +133,19 @@ come to `$name`
         foreach ($relationships as $rel) {
             $id = $rel['id'];
             if ($relations = $included[$rel['type']] ?? false) {
-                yield new FullData(['data' => $relations[$id], 'included' => $data['included']]);
+                yield new RelationData(['data' => $relations[$id], 'included' => $data['included']]);
             } else {
-                yield new Reference($id);
+                yield new RelationReference($id);
             }
         }
     }
 ```
 
-`FullData` - pass the nested entity data to the constructor argument in the format that you would like to receive when
-separate request for this object. Let's say you want to throw out the data for `deals`, and then insert `FullData`
+`RelationData` - pass the nested entity data to the constructor argument in the format that you would like to receive when
+separate request for this object. Let's say you want to throw out the data for `deals`, and then insert `RelationData`
 data in the format that comes with `GET /deals/123`
 
-`Reference` - if in a nested entity you get not data, but only their id - put this id in `Reference`. Then lazy loading
+`RelationReference` - if in a nested entity you get not data, but only their id - put this id in `RelationReference`. Then lazy loading
 will work and the object will be fully loaded when accessing any unloaded property.
 
 ## ListMappingCallback
@@ -191,7 +194,7 @@ The mapper should look like this:
     protected function list(array $data): iterable
     {
         foreach ($data['data'] as $element) {
-            yield new Data(['data' => $element], $data['pagination']['next']);
+            yield new Item(['data' => $element], $data['pagination']['next']);
         }
     }
 ```
@@ -266,23 +269,15 @@ Callback function for pre-creating an update request or creating an entity
 ```php
     #[UpdateRequestLayoutCallback]
     #[CreateRequestLayoutCallback]
-    protected function layout(
-        self $entity,
-        array $nonRelationChanges = [],
-        array $relationChanges = [],
-        array $entityData = [],
-        array $relationData = [],
-    ): array {
-        return ['type' => 'my_type', 'data' => ['id' => $entity->id]];
+    protected function layout(EntityChangesDTO $changesDTO): array {
+        return ['type' => 'my_type', 'data' => ['id' => $this->id]];
     }
 ```
 
-`entity` - current entity (try not to use `this` in this method)
+`EntityChangesDTO::getEntityChanges` - not relationship changes
 
-`entityChanges` - not relationship changes
+`EntityChangesDTO::getRelationChanges` - relationship changes
 
-`relationChanges` - relationship changes
+`EntityChangesDTO::getEntitySnapshot` - actual field data
 
-`entityData` - actual field data
-
-`relationData` - actual relationship data
+`EntityChangesDTO::getRelationsSnapshot` - actual relationship data

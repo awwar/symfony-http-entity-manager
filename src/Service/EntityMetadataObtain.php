@@ -5,7 +5,7 @@ namespace Awwar\SymfonyHttpEntityManager\Service;
 use Awwar\SymfonyHttpEntityManager\Annotation;
 use Closure;
 use ReflectionClass;
-use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\DependencyInjection\RelationReference;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class EntityMetadataObtain
@@ -73,9 +73,9 @@ class EntityMetadataObtain
     private function preprocessData(array $data, string $attributeClass): array
     {
         if ($attributeClass === Annotation\HttpEntity::class) {
-            $data['client'] = new Reference($data['client'] ?? HttpClientInterface::class);
+            $data['client'] = new RelationReference($data['client'] ?? HttpClientInterface::class);
             $repository = $data['repository'] ?? null;
-            $data['repository'] = $repository === null ? null : new Reference($repository);
+            $data['repository'] = $repository === null ? null : new RelationReference($repository);
         }
 
         return $data;
