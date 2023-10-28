@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.4] - 2023-10-28
+
+### Added
+
+* Add Symfony `^6.0` support
+
 ## [1.0.3] - 2023-02-01
 
 ### Fixed
