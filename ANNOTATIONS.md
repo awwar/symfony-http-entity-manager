@@ -10,11 +10,11 @@ Http entity label
 #[HttpEntity(name: 'contacts', client: "json_api.client", repository: ContactRepository::class, delete: 'delete-user/{id}')]
 ```
 
-`name` is the name of the entity. Participates in the formation of the resource url. Default `GET /{name}/{id}`
+`name` entity name. Participates in the formation of the resource url. Default `GET /{name}/{id}`
 or `POST /{name}`
 
-`client` - the http client that will be used for all requests. Required
-interface `Symfony\Contracts\HttpClient\HttpClientInterface`. You can use scoped_client
+`client` - the http client that will be used for requests. Required
+interface `Symfony\Contracts\HttpClient\HttpClientInterface`. Also, you can use scoped_client
 
 `repository` - default repository, optional
 
@@ -30,9 +30,10 @@ Label of the field responsible for id
 
 ```php
 #[EntityId]
+private int $id = 0;
 ```
 
-## FieldMap
+## DataField
 
 Require: <mark>YES</mark>
 
@@ -41,7 +42,8 @@ Target: `property`
 Data mapping label (not for nested entities)
 
 ```php
-#[FieldMap(all: 'data.id', preCreate: null)]
+#[DataField(all: 'data.id', preCreate: null)]
+private int $id = 0;
 ```
 
 Dot Notation is used to specify the path to the data from the request. That is, if after updating the entity we receive
@@ -78,9 +80,11 @@ There are 8 mapping settings in total:
 
 For complex combinatorics, use the rule:
 
-`preCreate` > `pre` > `all`
+`pre.*` > `pre` > `all`
 
-## RelationMap
+`post.*` > `post` > `all`
+
+## RelationField
 
 Require: <mark>YES</mark>
 
@@ -89,18 +93,19 @@ Target: `property`
 Related Entity Mapping Label
 
 ```php
-#[RelationMap(Deal::class, 'deals', RelationMap::MANY)]
+#[RelationField(class: Deal::class, expects: RelationSettings::MANY, alias: 'deals')]
+private Deal $deal;
 ```
 
 `class` - FQCN of the entity your entity refers to (this should also be `HttpEntity`)
 
 `name` - the alias of the related entity
 
-`expects` - if collection then `RelationMap::MANY`. If one, then `RelationMap::ONE`
+`expects` - if collection then `RelationSettings::MANY`. If one, then `RelationSettings::ONE`
 
-## RelationMapper
+## RelationMappingCallback
 
-Require: <mark>Only if there are entities</mark>
+Require: <mark>Only if related entities exists</mark>
 
 Target: `method`
 
@@ -113,14 +118,14 @@ That is, you have a user, he has transactions
 In the user, you marked transactions with the attribute
 
 ```php
-#[RelationMap(Deal::class, 'deals', RelationMap::MANY)]
+#[RelationField(class: Deal::class, expects: RelationSettings::MANY, alias: 'deals')]
 ```
 
-Then the whole response will come to the mapper, and the name that you wrote in the second argument of RelationMap will
+Then the whole response will come to the mapper, and the name that you wrote in the second argument of RelationField will
 come to `$name`
 
 ```php
-    #[RelationMapper]
+    #[RelationMappingCallback]
     protected function mapper(array &$data, string $name): iterable
     {
         $relationships = $mainData['relationships'][$name]['data'] ?? [];
@@ -128,22 +133,22 @@ come to `$name`
         foreach ($relationships as $rel) {
             $id = $rel['id'];
             if ($relations = $included[$rel['type']] ?? false) {
-                yield new FullData(['data' => $relations[$id], 'included' => $data['included']]);
+                yield new RelationData(['data' => $relations[$id], 'included' => $data['included']]);
             } else {
-                yield new Reference($id);
+                yield new RelationReference($id);
             }
         }
     }
 ```
 
-`FullData` - передать данные вложенной сущности в аргумент конструктора в том формате, который вы хотели бы получить при
-отдельном запросе для этого объекта. Допустим, вы хотите выкинуть данные для `сделок`, а потом вставить `FullData`
-данные в формате, который поставляется с `GET /deals/123`
+`RelationData` - pass the nested entity data to the constructor argument in the format that you would like to receive when
+separate request for this object. Let's say you want to throw out the data for `deals`, and then insert `RelationData`
+data in the format that comes with `GET /deals/123`
 
-`Reference` - if in a nested entity you get not data, but only their id - put this id in `Reference`. Then lazy loading
+`RelationReference` - if in a nested entity you get not data, but only their id - put this id in `RelationReference`. Then lazy loading
 will work and the object will be fully loaded when accessing any unloaded property.
 
-## ListDetermination
+## ListMappingCallback
 
 Require: <mark>YES</mark>
 
@@ -185,11 +190,11 @@ And when getting a list of entities (`GET /user/`) like this:
 The mapper should look like this:
 
 ```php
-    #[ListDetermination]
+    #[ListMappingCallback]
     protected function list(array $data): iterable
     {
         foreach ($data['data'] as $element) {
-            yield new Data(['data' => $element], $data['pagination']['next']);
+            yield new Item(['data' => $element], $data['pagination']['next']);
         }
     }
 ```
@@ -213,11 +218,11 @@ Specifies which HTTP method to update (PATCH or PUT)
 
 `useDiff` - when updating, whether to send only changes or all new state (true by default, i.e. "only changes")
 
-## GetOneQuery
+## OnGetOneQueryMixin
 
-## FilterQuery
+## OnFilterQueryMixin
 
-## FilterOneQuery
+## OnFindOneQueryMixin
 
 Require: <mark>NO</mark>
 
@@ -227,8 +232,8 @@ An array with the http request that will be merged with the overall http request
 filtering one". request respectively
 
 ```php
-#[FilterOneQuery(['include' => 'user,deals', 'page' => ['size' => 1]])]
-#[GetOneQuery(callback: ['class', 'method'], args: [1, 2, 3])]
+#[OnFindOneQueryMixin(['include' => 'user,deals', 'page' => ['size' => 1]])]
+#[OnGetOneQueryMixin(callback: ['class', 'method'], args: [1, 2, 3])]
 ```
 
 `query` - array of http query
@@ -251,9 +256,9 @@ Default value if key was not found in response
 #[DefaultValue(null)]
 ```
 
-## UpdateLayout
+## UpdateRequestLayoutCallback
 
-## CreateLayout
+## CreateRequestLayoutCallback
 
 Require: <mark>NO</mark>
 
@@ -262,25 +267,17 @@ Target: `method`
 Callback function for pre-creating an update request or creating an entity
 
 ```php
-    #[UpdateLayout]
-    #[CreateLayout]
-    protected function layout(
-        self $entity,
-        array $nonRelationChanges = [],
-        array $relationChanges = [],
-        array $entityData = [],
-        array $relationData = [],
-    ): array {
-        return ['type' => 'my_type', 'data' => ['id' => $entity->id]];
+    #[UpdateRequestLayoutCallback]
+    #[CreateRequestLayoutCallback]
+    protected function layout(EntityChangesDTO $changesDTO): array {
+        return ['type' => 'my_type', 'data' => ['id' => $this->id]];
     }
 ```
 
-`entity` - current entity (try not to use `this` in this method)
+`EntityChangesDTO::getEntityChanges` - not relationship changes
 
-`entityChanges` - not relationship changes
+`EntityChangesDTO::getRelationChanges` - relationship changes
 
-`relationChanges` - relationship changes
+`EntityChangesDTO::getEntitySnapshot` - actual field data
 
-`entityData` - actual field data
-
-`relationData` - actual relationship data
+`EntityChangesDTO::getRelationsSnapshot` - actual relationship data

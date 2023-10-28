@@ -71,4 +71,3 @@ the right sequence and does not allow unnecessary changes that could affect syst
 3) Late proxying. If there is a custom entity, and it has a collection of deals, to get a collection of proxy deals, you
    need to pass at least an array of their IDs. However, it is known about such api where the user can be obtained
    via `GET /users/123` and his deals via `GET /users/123/deals`. To do this, you need to implement late proxying.
-4) Implement the `em->merge()` method

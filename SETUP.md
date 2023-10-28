@@ -1,6 +1,6 @@
 # SymfonyHttpEntityManager
 
-To synchronize your entity with an external API, you need to go through 3 simple steps:
+To begin, you need to go through 3 simple steps:
 
 ## Setting up
 
@@ -25,7 +25,7 @@ This is a rather complex format for our library, and we need your help to cope w
 and then we will figure out what annotations need to be added so that the library can synchronize it with the api.
 
 ```php
-class contact
+class Contact
 {
     private ?string $id = null;
 
@@ -35,7 +35,7 @@ class contact
 
     private string $email = '';
 
-    private array $deals;
+    private Collection $deals;
 
     private ?Admin $admin = null;
 
@@ -61,7 +61,7 @@ class contact
 
     public function addDeal(Deal $deal): void
     {
-        if (in_array($deal, (array) $this->deals)) {
+        if ($this->deals->contain($deal)) {
             return;
         }
 
@@ -75,8 +75,8 @@ A fairly simple entity, but it has an array of `deals` and can store `admin`
 To get started we can add 4 main annotations:
 
 - [HttpEntity](ANNOTATIONS.md#httpentity)
-- [FieldMap](ANNOTATIONS.md#fieldmap)
-- [RelationMap](ANNOTATIONS.md#relationmap)
+- [DataField](ANNOTATIONS.md#datafield)
+- [RelationField](ANNOTATIONS.md#relationfield)
 - [EntityId](ANNOTATIONS.md#entityid)
 
 As a result, we can already get the entity. All fields except relations will be mapped correctly. However, for full
@@ -85,29 +85,29 @@ performance need other [annotations](ANNOTATIONS.md)
 ```php
 #[HttpEntity(name: 'contacts', client: "json_api.client", repository: ContactRepository::class, delete: 'delete-admin/{id}')]
 #[UpdateMethod(name: Request::METHOD_PATCH)]
-#[GetOneQuery(callback: [IncludesHelper::class, 'calculateIncludes'], args: [self::class])]
-#[FilterQuery(['include' => 'admin,deals'])]
-#[FilterOneQuery(['include' => 'admin,deals', 'page' => ['size' => 1]])]
+#[OnGetOneQueryMixin(callback: [IncludesHelper::class, 'calculateIncludes'], args: [self::class])]
+#[OnFilterQueryMixin(['include' => 'admin,deals'])]
+#[OnFindOneQueryMixin(['include' => 'admin,deals', 'page' => ['size' => 1]])]
 class Contact
 {
     #[EntityId]
-    #[FieldMap(all: 'data.id', preCreate: null)]
+    #[DataField(all: 'data.id', preCreate: null)]
     private ?string $id = null;
 
-    #[FieldMap(all: 'data.attributes.first-name')]
+    #[DataField(all: 'data.attributes.first-name')]
     private string $firstName = '';
 
-    #[FieldMap(all: 'data.attributes.sex')]
+    #[DataField(all: 'data.attributes.sex')]
     #[DefaultValue('u')]
     private string $sex;
 
-    #[FieldMap(all: 'data.attributes.email')]
+    #[DataField(all: 'data.attributes.email')]
     private string $email = '';
 
-    #[RelationMap(Deal::class, 'deals', RelationMap::MANY)]
+    #[RelationField(Deal::class, 'deals', RelationField::MANY)]
     private Collection $deals;
 
-    #[RelationMap(Admin::class, 'admin', RelationMap::ONE)]
+    #[RelationField(Admin::class, 'admin', RelationField::ONE)]
     private ?Admin $admin = null;
 
     public function __construct()
@@ -132,39 +132,33 @@ class Contact
 
     public function addDeal(Deal $deal): void
     {
-        if (in_array($deal, (array) $this->deals)) {
+        if ($this->deals->contain($deal)) {
             return;
         }
 
         $this->deals[] = $deal;
     }
     
-    #[ListDetermination]
+    #[ListMappingCallback]
     protected function list(array $data): iterable
     {
         foreach ($data['data'] as $element) {
-            yield new Data(['data' => $element, 'included' => $data['included']], $data['links']['next']);
+            yield new Item(['data' => $element, 'included' => $data['included']], $data['links']['next']);
         }
     }
     
-    #[UpdateLayout]
-    #[CreateLayout]
-    protected function layout(
-        self $entity,
-        array $entityChanges = [],
-        array $relationChanges = [],
-        array $entityData = [],
-        array $relationData = [],
-    ): array {
+    #[UpdateRequestLayoutCallback]
+    #[CreateRequestLayoutCallback]
+    protected function layout(EntityChangesDTO $changesDTO): array {
         $relationship = [];
         $ids = [];
 
-        if (false === empty($relationChanges)) {
-            foreach ($relationData as $name => $relation) {
+        if (false === empty($changesDTO->getEntityChanges())) {
+            foreach ($changesDTO->getRelationsSnapshot() as $name => $relation) {
                 $jsonApiRelation = [];
                 if ($relation instanceof Collection) {
                     foreach ($relation as $value) {
-                        $jsonApiRelation [] = [
+                        $jsonApiRelation[] = [
                             'type' => $value::NAME,
                             'id'   => $value->getId(),
                         ];
@@ -177,8 +171,8 @@ class Contact
             }
         }
 
-        if ($entity->id !== null) {
-            $ids = ['id' => $entity->id];
+        if ($this->id !== null) {
+            $ids = ['id' => $this->id];
         }
 
         return [
@@ -186,7 +180,7 @@ class Contact
         ];
     }
     
-    #[RelationMapper]
+    #[RelationMappingCallback]
     protected function mapper(array &$data, string $name): iterable
     {
         $relationships = $mainData['relationships'][$name]['data'] ?? [];
@@ -194,9 +188,9 @@ class Contact
         foreach ($relationships as $rel) {
             $id = $rel['id'];
             if ($relations = $included[$rel['type']] ?? false) {
-                yield new FullData(['data' => $relations[$id], 'included' => $data['included']]);
+                yield new RelationData(['data' => $relations[$id], 'included' => $data['included']]);
             } else {
-                yield new Reference($id);
+                yield new RelationReference($id);
             }
         }
     }
@@ -206,8 +200,8 @@ class Contact
 ## Create a repository
 
 ```php
-use Awwar\SymfonyHttpEntityManager\Service\Http\HttpEntityManagerInterface;
-use Awwar\SymfonyHttpEntityManager\Service\Http\HttpRepository;
+use Awwar\PhpHttpEntityManager\EntityManager\HttpEntityManagerInterface;
+use Awwar\PhpHttpEntityManager\Repository\HttpRepository;
 
 /**
  * @method Contact      find($id, array $criteria = [])

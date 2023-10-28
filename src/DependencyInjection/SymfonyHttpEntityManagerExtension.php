@@ -4,10 +4,25 @@ declare(strict_types=1);
 
 namespace Awwar\SymfonyHttpEntityManager\DependencyInjection;
 
-use Awwar\SymfonyHttpEntityManager\Service\EntityMetadataObtainer;
+use Awwar\PhpHttpEntityManager\Client\ClientInterface;
+use Awwar\PhpHttpEntityManager\EntityManager\HttpEntityManager;
+use Awwar\PhpHttpEntityManager\EntityManager\HttpEntityManagerInterface;
+use Awwar\PhpHttpEntityManager\Metadata\EntityMetadata;
+use Awwar\PhpHttpEntityManager\Metadata\MetadataRegistry;
+use Awwar\PhpHttpEntityManager\Metadata\MetadataRegistryInterface;
+use Awwar\PhpHttpEntityManager\Repository\HttpRepository;
+use Awwar\PhpHttpEntityManager\Repository\HttpRepositoryInterface;
+use Awwar\PhpHttpEntityManager\UnitOfWork\EntityAtelier;
+use Awwar\PhpHttpEntityManager\UnitOfWork\HttpUnitOfWork;
+use Awwar\PhpHttpEntityManager\UnitOfWork\HttpUnitOfWorkInterface;
+use Awwar\SymfonyHttpEntityManager\EventSubscriber\KernelEventsSubscriber;
+use Awwar\SymfonyHttpEntityManager\Service\Client;
+use Awwar\SymfonyHttpEntityManager\Service\EntityMetadataObtain;
 use Awwar\SymfonyHttpEntityManager\Service\HttpEntitiesDiscovery;
-use Awwar\SymfonyHttpEntityManager\Service\UOW\MetadataRegistry;
+use Awwar\SymfonyHttpEntityManager\Service\MetadataRegistryFactory;
+use Exception;
 use ReflectionClass;
+use ReflectionException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -16,6 +31,19 @@ use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 class SymfonyHttpEntityManagerExtension extends Extension
 {
+    private const SERVICES = [
+        HttpEntityManagerInterface::class => HttpEntityManager::class,
+        HttpRepositoryInterface::class    => HttpRepository::class,
+        ClientInterface::class            => Client::class,
+        EntityAtelier::class              => EntityAtelier::class,
+        EntityMetadata::class             => EntityMetadata::class,
+        HttpUnitOfWorkInterface::class    => HttpUnitOfWork::class,
+    ];
+
+    /**
+     * @throws ReflectionException
+     * @throws Exception
+     */
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();
@@ -37,24 +65,39 @@ class SymfonyHttpEntityManagerExtension extends Extension
         }
 
         $discovery = new HttpEntitiesDiscovery($mapping);
-        $obtainer = new EntityMetadataObtainer();
+        $obtain = new EntityMetadataObtain();
 
         $entityClasses = [];
-        $metadataMap = array_map(function (ReflectionClass $reflection) use ($obtainer, &$entityClasses) {
-            $metadata = $obtainer->fromReflection($reflection);
-            $entityClasses [] = $metadata['name'];
-            return $metadata;
-        }, $discovery->getData());
+        $metadataMap = array_map(function (ReflectionClass $reflection) use ($obtain, &$entityClasses) {
+            $entityClasses [] = $reflection->getName();
 
-        $metadataRegistryService = new Definition(MetadataRegistry::class);
-        $metadataRegistryService->setArguments([$metadataMap]);
-        $metadataRegistryService->setAutoconfigured(true);
-        $metadataRegistryService->setAutowired(true);
-        $metadataRegistryService->setLazy(true);
+            return $obtain->fromReflection($reflection);
+        }, $discovery->searchEntries());
 
-        $container->setDefinition(MetadataRegistry::class, $metadataRegistryService);
+        $metadataRegistryService = (new Definition(MetadataRegistry::class))
+            ->setFactory([MetadataRegistryFactory::class, 'create'])
+            ->setArguments([$metadataMap])
+            ->setAutoconfigured(true)
+            ->setLazy(true);
 
-        $container->setParameter('http_entity.proxy_dir', '%kernel.cache_dir%/http_doctrine/Proxies/__HTTP__');
+        $container->setDefinition(MetadataRegistryInterface::class, $metadataRegistryService);
+
+        foreach (self::SERVICES as $alias => $name) {
+            $container->setDefinition(
+                $alias,
+                (new Definition($name))->setAutoconfigured(true)->setAutowired(true)
+            );
+        }
+
+        $container->setParameter('http_entity.proxy_dir', '%kernel.cache_dir%/http_entity/Proxies/__HTTP__');
         $container->setParameter('http_entity.entity_classes', $entityClasses);
+
+        $kernelEventSubscriber = new Definition(KernelEventsSubscriber::class);
+        $kernelEventSubscriber
+            ->setAutoconfigured(true)
+            ->setAutowired(true)
+            ->addTag('kernel.event_subscriber');
+
+        $container->setDefinition(KernelEventsSubscriber::class, $kernelEventSubscriber);
     }
 }
