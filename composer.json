@@ -11,7 +11,7 @@
     "symfony/http-kernel": "~5.4|^6.0",
     "symfony/finder": "~5.4|^6.0",
     "symfony/http-client-contracts": "^2.0|^3.0",
-    "awwar/php-http-entity-manager": "dev-feature/1"
+    "awwar/php-http-entity-manager": "1.0.0-rc"
   },
   "autoload": {
     "psr-4": {
